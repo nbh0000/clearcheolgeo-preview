@@ -3,9 +3,10 @@
 상가·인테리어철거와 폐기물처리 상담을 위한 반응형 홈페이지입니다.
 전화상담 · 견적문의 접수 · 철거지원금 상담 유도를 목표로 구성했습니다.
 
-- 기술 스택: **Next.js 15 (App Router) · React 19 · TypeScript · 순수 CSS(디자인 토큰)**
+- 기술 스택: **Next.js 15 (App Router) · React 19 · TypeScript · PostgreSQL · 순수 CSS(디자인 토큰)**
 - 대표 상담전화: **010-8814-2234** (`tel:01088142234`)
 - 디자인 기준: 프로젝트 루트의 `DESIGN.md`
+- 배포 안내: `CLOUDTYPE.md` (클라우드타입) / `DEPLOY.md` (일반)
 
 ---
 
@@ -19,6 +20,8 @@ npm install
 cp .env.example .env.local
 ```
 
+`.env.local` 에 최소한 `DATABASE_URL` 을 채운 뒤 실행합니다.
+
 ```bash
 npm run dev
 ```
@@ -29,17 +32,24 @@ npm run dev
 npm run build && npm run start
 ```
 
-기타 명령
+### 기타 명령
 
 | 명령 | 설명 |
 | --- | --- |
 | `npm run typecheck` | 타입 검사 |
-| `npm test` | 접수 API 통합 테스트 (**서버가 실행 중이어야 함**) |
+| `npm test` | 저장 스키마·쿼리 검증 (실제 PostgreSQL 엔진으로 실행, 서버 불필요) |
+| `npm run test:api` | 접수 API 통합 테스트 (**서버가 실행 중이어야 함**) |
 
-테스트는 실행 중인 서버를 대상으로 합니다.
+API 테스트는 실행 중인 서버를 대상으로 합니다.
 
 ```bash
-BASE_URL=http://localhost:3000 npm test
+BASE_URL=http://localhost:3000 npm run test:api
+```
+
+DB 없이 로컬에서 접수까지 시험해 보려면, 검증용 PostgreSQL 을 띄우고 그 주소를 `DATABASE_URL` 로 지정하면 됩니다. (개발 전용)
+
+```bash
+node tests/pg-server.mjs 55432 ./tests/.pgdata
 ```
 
 ---
@@ -50,7 +60,7 @@ BASE_URL=http://localhost:3000 npm test
 | --- | --- |
 | `/` | 메인 — 히어로, 사업분야 2종, 업무 원칙, 지원금 배너, 진행 과정, FAQ, 상담 유도 |
 | `/about` | 회사소개 |
-| `/services` | 사업분야 선택 화면 (상단 메뉴 ‘사업분야’ 클릭 시 이동) |
+| `/services` | 사업분야 선택 화면 (상단 메뉴 '사업분야' 클릭 시 이동) |
 | `/services/demolition` | 철거 |
 | `/services/waste` | 폐기물처리 |
 | `/support` | 철거지원금 안내 |
@@ -59,12 +69,12 @@ BASE_URL=http://localhost:3000 npm test
 | `/projects`, `/projects/[slug]` | 시공사례 — **실제 사례가 등록되기 전에는 404, 메뉴·메인에서 자동 숨김** |
 | `/admin` | 접수 관리 (관리자 인증 필요, 검색엔진 비노출) |
 
-기능
+### 기능
 
-- 상단 고정 헤더(전화번호 + 견적문의), PC 우측 하단 고정 상담 카드, 모바일 하단 고정 상담바
+- 상단 고정 헤더(전화번호 + 견적문의), PC 우측 하단 고정 상담 버튼, 모바일 하단 고정 상담바
 - 모바일 하단 상담바는 입력 중(가상 키보드)에는 자동으로 숨겨지고, 본문에는 하단 여백이 확보됩니다
 - 사업분야 드롭다운(PC) / 메뉴 시트(모바일)
-- 철거지원금 팝업: 메인에서 세션당 1회, ESC·닫기·배경 클릭으로 닫힘, ‘오늘 하루 보지 않기’는 **한국시간 날짜 기준**
+- 철거지원금 팝업: 메인에서 세션당 1회, ESC·닫기·배경 클릭으로 닫힘, '오늘 하루 보지 않기'는 **한국시간 날짜 기준**
 - 서비스별 견적문의 버튼 → 문의 유형 자동 선택 (`/quote?type=demolition|waste|both|support`)
 - 첨부 이미지 미리보기·삭제, 클라이언트/서버 양쪽 검증
 
@@ -84,7 +94,7 @@ BASE_URL=http://localhost:3000 npm test
 | 색상·글꼴·여백 등 디자인 토큰 | `app/tokens.css` |
 | 공통 스타일 / 컴포넌트 스타일 | `app/globals.css`, `app/components.css` |
 
-전화번호는 `config/site.ts`의 `phone` 한 곳에서만 관리되며 모든 페이지가 이 값을 사용합니다.
+전화번호는 `config/site.ts` 의 `phone` 한 곳에서만 관리되며 모든 페이지가 이 값을 사용합니다.
 
 ### 시공사례 공개 방법
 
@@ -98,37 +108,44 @@ BASE_URL=http://localhost:3000 npm test
 
 ## 4. 견적문의 접수 — 저장과 운영
 
-### 저장 방식
+### 저장 방식 (PostgreSQL)
 
-접수 내용은 **서버 파일시스템에 append-only JSONL 로 영구 저장**됩니다. (메모리 저장 아님)
+접수 내용과 첨부 사진은 **외부 PostgreSQL 에 저장**됩니다.
+접수 1건과 첨부 전체가 **하나의 트랜잭션**으로 커밋되므로, 중간에 실패하면 전부 롤백되어
+"반쯤 저장된" 기록이 남지 않습니다.
 
-```
-<QUOTE_DATA_DIR 또는 ./data>
-├── quotes.jsonl   접수 레코드 (1줄 = 1건)
-├── events.jsonl   알림 발송 결과 (저장과 분리 기록)
-└── uploads/<접수번호>/  첨부 이미지 (공개 URL 없음)
-```
+| 테이블 | 내용 |
+| --- | --- |
+| `quotes` | 접수 식별자, 접수 시각, 문의 유형, 담당자명, 상호명, 연락처, 현장 주소, 문의사항, 선택 입력(JSONB), 동의 여부와 **동의문 버전**, IP 해시, 알림 상태 |
+| `quote_attachments` | 첨부 이미지(BYTEA). 접수 삭제 시 함께 삭제 (`ON DELETE CASCADE`) |
 
-저장 항목: 접수 식별자, 접수 시각, 문의 유형, 담당자명, 상호명, 연락처, 현장 주소,
-문의사항, 선택 입력 정보, 첨부파일 참조, 개인정보 동의 여부와 **동의문 버전**.
+테이블은 첫 실행 시 자동 생성됩니다 (`CREATE TABLE IF NOT EXISTS`). 별도 마이그레이션 도구는 쓰지 않습니다.
+스키마와 쿼리는 `lib/schema.ts` 한 곳에 모여 있고, 테스트도 같은 SQL 을 사용합니다.
 
-> ⚠ **서버리스 배포 시 반드시 교체해야 합니다.**
-> Vercel 등 파일시스템이 유지되지 않는 환경에서는 접수가 유실됩니다.
-> `lib/storage.ts` 의 `appendQuote` / `readQuotes` / `saveAttachment` / `readAttachment` 를
-> DB(예: Postgres)와 오브젝트 스토리지(예: S3) 구현으로 교체하세요.
-> 파일시스템을 유지하는 서버(VPS, Docker 볼륨 등)에 배포하는 경우
-> `QUOTE_DATA_DIR` 를 **백업되는 영구 볼륨 경로**로 지정하세요.
+> ⚠️ **파일 저장 방식은 사용하지 않습니다.**
+> 클라우드타입은 디스크 마운트를 지원하지 않아 컨테이너에 파일로 저장하면 재배포 시 사라집니다.
+> ([공식 문서](https://docs.cloudtype.io/guide/troubleshooting/common))
+
+> ⚠️ `DATABASE_URL` 이 없으면 견적문의 폼 대신 전화상담 안내가 표시되고, 서버 API 도 503 으로 접수를 거부합니다.
+> **저장되지 않는데 접수된 것처럼 보이는 일은 발생하지 않습니다.**
+
+> ⚠️ 첨부 사진이 DB 용량을 그대로 차지합니다 (사진 1장 최대 10MB · 접수당 최대 5장).
+> 무료 요금제 저장공간은 금방 찰 수 있으므로 사용량을 주기적으로 확인하세요.
+
+> ⚠️ **DB 자동 백업을 반드시 켜 두세요.** 고객 개인정보가 담긴 유일한 사본입니다.
+> 자동 백업이 없는 자체 호스팅 DB(예: 컨테이너로 직접 띄운 PostgreSQL)는 권장하지 않습니다.
 
 ### 보안·개인정보
 
 - 접수 내용은 공개 페이지·공개 API·검색 결과에 노출되지 않습니다. (`GET /api/quote` 는 404)
 - `/admin`, `/api/admin/*` 은 `middleware.ts` 의 HTTP Basic 인증으로 보호되며,
   `ADMIN_USER` / `ADMIN_PASSWORD` 가 없으면 **503으로 완전히 차단**됩니다.
-- 첨부 이미지는 `public/` 에 두지 않고, 관리자 인증을 통과한 요청만 조회할 수 있습니다.
+- 첨부 이미지는 공개 URL 이 존재하지 않고, 관리자 인증을 통과한 요청만 조회할 수 있습니다.
 - 서버 검증, 요청 빈도 제한(IP당 10분 5건), 숨김 필드·최소 작성시간 기반 스팸 방지가 적용되어 있습니다.
 - 이름·연락처·주소·문의내용은 서버 로그와 알림 웹훅에 남기지 않습니다. IP 는 원문 대신 해시로 저장합니다.
 - ⚠ 요청 빈도 제한은 `x-forwarded-for` 를 사용합니다. **프록시가 이 헤더를 덮어쓰는 구성**으로 배포해야 우회되지 않습니다.
   또한 카운터는 프로세스 메모리에 있으므로 다중 인스턴스로 확장할 때는 Redis 등 공유 저장소로 교체해야 합니다.
+- DB 연결은 기본적으로 SSL 인증서를 검증합니다. 자체 서명 인증서를 쓰는 DB 에만 `DATABASE_SSL_INSECURE=1` 을 사용하세요.
 
 ### 관리자 알림 (현재 미연결)
 
@@ -146,23 +163,24 @@ BASE_URL=http://localhost:3000 npm test
 
 아래 항목은 **확인되지 않아 화면에 표시하지 않았습니다.** 값이 확인되면 `config/site.ts` 에 채우면 자동으로 노출됩니다.
 
-- [ ] 사업자등록상 상호 / 대표자명 / 사업장 주소 / 사업자등록번호 (`business`)
+- [ ] 사업자등록상 상호 / 사업장 주소 / 사업자등록번호 (`business`) — 대표자명은 '조호식'으로 확인됨
 - [ ] 폐기물 관련 허가·신고 정보, 직접 수행 범위와 위탁·연계 범위의 구분 (`business.licenses`)
 - [ ] 확정 영업지역 (`business.serviceAreas`)
-- [ ] 운영시간 (`phone.hours`, `business.businessHours`) — 확인 전까지 ‘24시간 상담·연중무휴’ 표기 없음
+- [ ] 운영시간 (`phone.hours`, `business.businessHours`) — 확인 전까지 '24시간 상담·연중무휴' 표기 없음
 - [ ] 개인정보 보유·이용 기간의 최종 확정값과 처리주체 표기 (`privacy.retentionPeriod`, `privacy.controllerName`)
-- [ ] 최종 도메인 (`NEXT_PUBLIC_SITE_URL`) — 미설정 시 sitemap 은 비어 있고 canonical/OG 절대주소를 만들지 않습니다
 - [ ] 실제 시공사례 사진과 공개 동의 (고객명·상세주소·얼굴·차량번호 공개 가능 여부 확인)
 - [ ] 지원금 안내의 최신 공고 확인 — 콘텐츠는 2026년 사업 안내 기준이며, **접수 여부·예산 잔여는 확인하지 않았습니다**
 - [ ] 관리자 알림 수신처(이메일 또는 문자 서비스)
 
 ## 6. 공개 전 체크리스트
 
-- [ ] `.env.local` 의 `ADMIN_USER` / `ADMIN_PASSWORD` 를 실제 운영값으로 변경 (기본 예시 비밀번호 사용 금지)
-- [ ] `IP_HASH_SALT` 를 임의의 긴 문자열로 설정
-- [ ] `QUOTE_DATA_DIR` 를 백업되는 영구 경로로 지정하고 백업 주기 설정
+- [ ] `DATABASE_URL` 을 **자동 백업이 되는 관리형 PostgreSQL** 로 설정
+- [ ] `ADMIN_USER` / `ADMIN_PASSWORD` 를 실제 운영값으로 변경 (예시 비밀번호 사용 금지)
+- [ ] `IP_HASH_SALT` 를 임의의 긴 문자열로 설정 (이후 변경 금지)
+- [ ] `NEXT_PUBLIC_SITE_URL` 설정 후 **재배포** (빌드 시점에 반영됨)
 - [ ] HTTPS 적용 (Basic 인증·접수 내용이 평문으로 전송되지 않도록)
-- [ ] `data/` 에 남아 있는 테스트 접수 기록 삭제
+- [ ] 재배포를 한 번 더 한 뒤 `/admin` 에 기존 접수가 남아 있는지 확인
+- [ ] 테스트로 넣은 접수 기록 삭제 (`DELETE FROM quotes WHERE ...`)
 - [ ] 지원금 최신 공고 재확인 후 `config/site.ts` 의 `support` 문구 갱신
 - [ ] 개인정보처리방침의 보유기간·처리주체가 실제 운영과 일치하는지 확인
 
@@ -175,8 +193,10 @@ app/            페이지 · API 라우트 · 전역 스타일(디자인 토큰)
 components/     헤더 · 푸터 · 고정 상담 · 지원금 팝업/배너 · FAQ · CTA
 config/site.ts  사이트 공통 설정 (전화번호 · 지원금 · 사업자정보 · 기능 on/off)
 content/        메뉴 · 서비스 · FAQ · 시공사례 등 콘텐츠 데이터
-lib/            저장 · 검증 · 요청 제한 · 알림 · SEO 헬퍼
+lib/db.ts       PostgreSQL 연결
+lib/schema.ts   테이블 스키마와 쿼리 (단일 출처)
+lib/storage.ts  접수 저장·조회 (트랜잭션)
+lib/            검증 · 요청 제한 · 알림 · SEO 헬퍼
 middleware.ts   관리자 영역 Basic 인증
-tests/          접수 API 통합 테스트
-data/           접수 데이터 (git 제외)
+tests/          스키마 검증 · 접수 API 통합 테스트 · 검증용 PostgreSQL 서버
 ```

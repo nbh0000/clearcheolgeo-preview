@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { readQuotes, readNotificationStatuses } from '@/lib/storage';
+import { readQuotes, type QuoteRecord } from '@/lib/storage';
+import { checkDatabase, isDatabaseConfigured } from '@/lib/db';
 import { isNotifyConfigured } from '@/lib/notify';
 import { siteConfig } from '@/config/site';
 
@@ -18,6 +19,16 @@ const NOTIFY_LABEL: Record<string, string> = {
   failed: '발송 실패',
 };
 
+const OPTIONAL_LABEL: Record<string, string> = {
+  usage: '업종/용도',
+  area: '면적',
+  areaUnit: '단위',
+  preferredDate: '희망일',
+  floor: '층수',
+  elevator: '엘리베이터',
+  vehicleAccess: '차량접근',
+};
+
 function formatKst(iso: string): string {
   const d = new Date(iso);
   const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
@@ -29,24 +40,70 @@ function formatKst(iso: string): string {
 
 /** 관리자 전용 접수 목록 (Basic 인증은 middleware.ts 에서 처리). */
 export default async function AdminPage() {
-  const [records, events] = await Promise.all([readQuotes(200), readNotificationStatuses()]);
+  const dbStatus = await checkDatabase();
+
+  let records: QuoteRecord[] = [];
+  let loadError: string | null = null;
+  if (dbStatus.ok) {
+    try {
+      records = await readQuotes(200);
+    } catch (err) {
+      loadError = err instanceof Error ? err.message : '조회 중 오류가 발생했습니다.';
+    }
+  }
 
   return (
     <section className="section">
       <div className="container">
         <h1 className="display-sm">견적문의 접수 목록</h1>
         <p className="body-sm mt-sm">
-          최근 {records.length}건 · 저장 위치: 서버 데이터 디렉터리(quotes.jsonl) · 알림 연결{' '}
+          저장소: PostgreSQL · 연결 {dbStatus.ok ? '정상' : '오류'} · 알림 연결{' '}
           {isNotifyConfigured() ? '설정됨' : '미설정'}
+          {dbStatus.ok ? ` · 최근 ${records.length}건` : ''}
         </p>
         <p className="caption mt-xs">
           이 화면은 검색엔진에 노출되지 않으며, 관리자 인증 없이는 접근할 수 없습니다. 개인정보가
           포함되어 있으므로 취급에 주의해 주세요.
         </p>
 
-        {records.length === 0 ? (
+        {!isDatabaseConfigured() && (
+          <div className="notice mt-lg" style={{ borderColor: 'var(--semantic-down)' }}>
+            <p className="title-sm" style={{ color: 'var(--semantic-down)' }}>
+              데이터베이스가 연결되지 않았습니다
+            </p>
+            <p className="mt-xs">
+              환경변수 <strong>DATABASE_URL</strong> 이 설정되지 않아 온라인 견적문의 접수가
+              중단되어 있습니다. 고객에게는 전화상담 안내가 표시되며, 접수는 저장되지 않습니다.
+            </p>
+          </div>
+        )}
+
+        {isDatabaseConfigured() && !dbStatus.ok && (
+          <div className="notice mt-lg" style={{ borderColor: 'var(--semantic-down)' }}>
+            <p className="title-sm" style={{ color: 'var(--semantic-down)' }}>
+              데이터베이스에 연결하지 못했습니다
+            </p>
+            <p className="mt-xs">{dbStatus.detail}</p>
+            <p className="mt-xs">
+              접수가 저장되지 않는 상태입니다. DATABASE_URL 값과 DB 상태를 확인해 주세요.
+            </p>
+          </div>
+        )}
+
+        {loadError && (
+          <div className="notice mt-lg" style={{ borderColor: 'var(--semantic-down)' }}>
+            <p className="title-sm" style={{ color: 'var(--semantic-down)' }}>
+              목록을 불러오지 못했습니다
+            </p>
+            <p className="mt-xs">{loadError}</p>
+          </div>
+        )}
+
+        {dbStatus.ok && !loadError && records.length === 0 && (
           <div className="notice mt-lg">아직 접수된 문의가 없습니다.</div>
-        ) : (
+        )}
+
+        {records.length > 0 && (
           <div className="table-scroll mt-lg">
             <table className="admin-table">
               <thead>
@@ -66,8 +123,7 @@ export default async function AdminPage() {
               </thead>
               <tbody>
                 {records.map((r) => {
-                  const notification = events.get(r.id)?.notification ?? r.notification;
-                  const optional = Object.entries(r.optional).filter(([, v]) => v);
+                  const optional = Object.entries(r.optional ?? {}).filter(([, v]) => v);
                   return (
                     <tr key={r.id}>
                       <td className="num">{r.id}</td>
@@ -90,7 +146,7 @@ export default async function AdminPage() {
                           ? '-'
                           : optional.map(([k, v]) => (
                               <div key={k}>
-                                {k}: {v}
+                                {OPTIONAL_LABEL[k] ?? k}: {v}
                               </div>
                             ))}
                       </td>
@@ -115,7 +171,7 @@ export default async function AdminPage() {
                         <br />
                         <span className="caption">{r.consent.version}</span>
                       </td>
-                      <td>{NOTIFY_LABEL[notification.status] ?? notification.status}</td>
+                      <td>{NOTIFY_LABEL[r.notification.status] ?? r.notification.status}</td>
                     </tr>
                   );
                 })}
@@ -128,8 +184,12 @@ export default async function AdminPage() {
           <p className="title-sm">운영 안내</p>
           <ul className="dot-list mt-sm">
             <li>
-              접수 데이터는 서버 파일시스템에 저장됩니다. 배포 환경이 파일시스템을 유지하지 않는
-              경우(서버리스 등) DB 또는 오브젝트 스토리지 연동이 필요합니다.
+              접수 데이터는 외부 PostgreSQL 에 저장됩니다. 컨테이너를 재배포해도 유지되지만,
+              <strong> DB 자동 백업이 켜져 있는지 반드시 확인</strong>해 주세요.
+            </li>
+            <li>
+              첨부 사진도 DB 에 저장되므로 요금제의 저장공간을 함께 확인해 주세요. (사진 1장 최대{' '}
+              {siteConfig.quote.maxFileSizeMb}MB · 접수당 최대 {siteConfig.quote.maxFiles}장)
             </li>
             <li>
               보유·이용 기간: {siteConfig.privacy.retentionPeriod} — 기간이 지난 기록은 운영자가

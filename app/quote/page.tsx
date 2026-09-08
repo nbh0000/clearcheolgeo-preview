@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { siteConfig } from '@/config/site';
+import { isDatabaseConfigured } from '@/lib/db';
 import { faqs } from '@/content/faq';
 import { pageMetadata } from '@/lib/seo';
 import Faq from '@/components/Faq';
@@ -11,6 +12,9 @@ export const metadata: Metadata = pageMetadata({
     '철거·폐기물처리 견적문의. 현장 정보를 남겨주시면 작업 범위와 견적을 상담해 드립니다. 회원가입 없이 비공개로 접수됩니다.',
   path: '/quote',
 });
+
+// 저장소(DB)가 연결되지 않은 상태에서는 접수 폼 대신 전화상담 안내를 보여준다.
+export const dynamic = 'force-dynamic';
 
 export default async function QuotePage({
   searchParams,
@@ -39,7 +43,7 @@ export default async function QuotePage({
       <section className="section">
         <div className="container">
           <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', maxWidth: '760px' }}>
-            {siteConfig.quote.enabled ? (
+            {siteConfig.quote.enabled && isDatabaseConfigured() ? (
               <QuoteForm initialType={params.type} />
             ) : (
               <div className="card">

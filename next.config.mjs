@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // 서버/도커 배포 시 필요한 파일만 묶어 준다 (.next/standalone)
-  output: 'standalone',
   poweredByHeader: false,
   async headers() {
     return [
