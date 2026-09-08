@@ -1,0 +1,124 @@
+/* =============================================================
+   디자인 토큰 — DESIGN.md 를 단일 출처로 삼는다.
+   색상 / 타이포 / 여백 / 반경은 여기서만 정의하고,
+   모든 페이지·컴포넌트는 이 변수만 참조한다. (하드코딩 hex 금지)
+   ============================================================= */
+
+:root {
+  /* ---------- Colors : DESIGN.md `colors` 그대로 ---------- */
+  --primary: #0052ff;
+  --primary-active: #003ecc;
+  --primary-disabled: #a8b8cc;
+
+  --ink: #0a0b0d;
+  --body: #5b616e;
+  --body-strong: #0a0b0d;
+  --muted: #7c828a;
+  --muted-soft: #a8acb3;
+
+  --hairline: #dee1e6;
+  --hairline-soft: #eef0f3;
+
+  --canvas: #ffffff;
+  --surface-soft: #f7f7f7;
+  --surface-card: #ffffff;
+  --surface-strong: #eef0f3;
+  --surface-dark: #0a0b0d;
+  --surface-dark-elevated: #16181c;
+
+  --on-primary: #ffffff;
+  --on-dark: #ffffff;
+  --on-dark-soft: #a8acb3;
+
+  /* 상태 표시 전용(텍스트 색으로만 사용, 배경 채움 금지) */
+  --semantic-up: #05b169;
+  --semantic-down: #cf202f;
+  /* 일러스트 전용 서브 악센트 — 액션 색으로 사용하지 않는다. */
+  --accent-yellow: #f4b000;
+
+  /* ---------- Radius ---------- */
+  --r-none: 0px;
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-pill: 100px;
+  --r-full: 9999px;
+
+  /* ---------- Spacing (4px base) ---------- */
+  --s-xxs: 4px;
+  --s-xs: 8px;
+  --s-sm: 12px;
+  --s-base: 16px;
+  --s-md: 20px;
+  --s-lg: 24px;
+  --s-xl: 32px;
+  --s-xxl: 48px;
+  --s-section: 96px;
+
+  /* ---------- Typography ---------- */
+  /* CoinbaseDisplay/Sans 는 라이선스 폰트이므로 한글 지원 대체 글꼴을 사용한다.
+     Pretendard(SIL OFL 1.1) — Inter 계열의 기하학적 산세리프로 한글을 포함한다.
+     숫자는 DESIGN.md 의 CoinbaseMono → JetBrains Mono 대체 지침을 따른다. */
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, system-ui, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-display: var(--font-sans);
+  --font-mono: 'JetBrains Mono', 'Pretendard Variable', Pretendard, ui-monospace, monospace;
+
+  /* display 계열 크기 (데스크톱 기준) */
+  --fs-display-mega: 80px;
+  --fs-display-xl: 64px;
+  --fs-display-lg: 52px;
+  --fs-display-md: 44px;
+  --fs-display-sm: 36px;
+  --fs-title-lg: 32px;
+  --fs-title-md: 18px;
+  --fs-title-sm: 16px;
+  --fs-body: 16px;
+  --fs-body-sm: 14px;
+  --fs-caption: 13px;
+  --fs-caption-strong: 12px;
+
+  /* 한글 최적화 조정값 (DESIGN.md 대비 조정 — README 검수표 참고)
+     display weight 400 → 500 : 한글 낱자의 획 대비를 맞추기 위한 최소 보정
+     tracking -2.5% → -2%    : 한글 자간이 과도하게 좁아지는 문제 방지 */
+  --fw-display: 500;
+  --tracking-display: -0.02em;
+
+  /* ---------- Layout ---------- */
+  --container: 1200px;
+  --nav-h: 64px;
+  --mobile-bar-h: 64px;
+
+  /* ---------- Elevation (단일 단계) ---------- */
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.04);
+
+  color-scheme: light;
+}
+
+/* 데스크톱 → 모바일 단계별 축소 (DESIGN.md Responsive Behavior) */
+@media (max-width: 1024px) {
+  :root {
+    --fs-display-mega: 64px;
+    --fs-display-xl: 52px;
+    --fs-display-lg: 44px;
+    --fs-display-md: 36px;
+    --fs-display-sm: 30px;
+    --fs-title-lg: 26px;
+    --s-section: 72px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --fs-display-mega: 36px;
+    --fs-display-xl: 32px;
+    --fs-display-lg: 28px;
+    --fs-display-md: 26px;
+    --fs-display-sm: 22px;
+    --fs-title-lg: 20px;
+    --fs-title-md: 17px;
+    --s-section: 56px;
+  }
+}
