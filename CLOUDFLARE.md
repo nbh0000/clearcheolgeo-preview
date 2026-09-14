@@ -6,8 +6,11 @@
 ## 구조
 
 - `@opennextjs/cloudflare` 어댑터로 Next.js 를 Workers 에서 실행한다. (`wrangler.jsonc`, `open-next.config.ts`)
-- 접수 데이터는 Supabase PostgreSQL 에 저장한다. Workers 는 요청 간 소켓을 공유할 수 없으므로
-  `lib/db.ts` 는 요청마다 연결을 열고 닫는다. (Supabase **Session pooler** 주소 사용)
+- 접수 데이터는 Supabase PostgreSQL 에, 첨부 사진은 Supabase Storage(비공개 버킷 `quote-attachments`)에 저장한다.
+- Workers 는 Supabase 의 자체 인증기관 TLS 인증서를 검증할 수 없어 PostgreSQL 프로토콜로 직접 접속하지 못한다.
+  그래서 `lib/db.ts` 는 supabase-js 로 Data API / Storage 를 HTTPS 로 호출한다. (`pg` 미사용)
+- 테이블·버킷은 `supabase/schema.sql` 을 Supabase **SQL Editor** 에서 1회 실행해 만든다.
+  두 테이블은 RLS 가 켜져 있고 정책이 없어 anon 키로는 접근할 수 없다.
 - 정적 파일은 Workers Assets 로 서빙된다.
 
 ## 명령
@@ -22,7 +25,8 @@
 
 | 이름 | 종류 | 값 |
 | --- | --- | --- |
-| `DATABASE_URL` | Secret | `postgresql://postgres.<ref>:<비밀번호>@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require` |
+| `SUPABASE_URL` | `wrangler.jsonc` 의 `vars` | `https://<ref>.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret | Supabase → Project Settings → API keys → `service_role` |
 | `ADMIN_USER` | Secret | 관리자 아이디 |
 | `ADMIN_PASSWORD` | Secret | 관리자 비밀번호 (16자 이상) |
 | `IP_HASH_SALT` | Secret | 임의의 긴 문자열 (변경 금지) |

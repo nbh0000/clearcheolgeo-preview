@@ -1,22 +1,18 @@
 /**
- * 견적문의 영구 저장 (PostgreSQL)
+ * 견적문의 영구 저장 (Supabase)
  * ------------------------------------------------------------
- * 접수 1건과 첨부 이미지를 **하나의 트랜잭션**으로 저장한다.
- * 중간에 실패하면 전부 롤백되므로 "일부만 저장된" 상태가 남지 않는다.
+ * 접수 1건은 quotes 테이블에, 첨부 이미지는 비공개 Storage 버킷에 저장하고
+ * quote_attachments 에는 메타데이터만 남긴다.
  *
- * 첨부 이미지는 DB(BYTEA)에 저장한다.
- *  - 공개 URL 이 존재하지 않고, 관리자 인증을 통과한 요청만 조회할 수 있다.
- *  - 사진 용량이 그대로 DB 용량이므로 요금제 저장공간을 함께 확인해야 한다. (README 참고)
+ * HTTP API 라 DB 트랜잭션을 쓸 수 없으므로 순서로 원자성을 보장한다.
+ *  1) 첨부 업로드 → 2) 접수 행 저장 → 3) 첨부 메타 저장
+ *  중간에 실패하면 이미 만든 것(업로드 파일·접수 행)을 지워 "반쯤 저장된" 기록을 남기지 않는다.
+ *
+ * 첨부 이미지는 공개 URL 이 없고, 관리자 인증을 통과한 요청만 조회할 수 있다.
  */
 import crypto from 'node:crypto';
-import { withClient } from './db';
-import {
-  INSERT_ATTACHMENT_SQL,
-  INSERT_QUOTE_SQL,
-  SELECT_ATTACHMENT_SQL,
-  SELECT_QUOTES_SQL,
-  UPDATE_NOTIFICATION_SQL,
-} from './schema';
+import { ATTACHMENT_BUCKET, getSupabase } from './db';
+
 
 export type StoredAttachment = {
   id: string;
@@ -129,54 +125,75 @@ export function safeFileName(name: string): string {
 }
 
 /**
- * 접수 저장 — 접수 1건 + 첨부 전체를 한 트랜잭션으로 커밋한다.
- * 커밋이 끝난 뒤에만 성공으로 응답해야 한다.
+ * 접수 저장 — 첨부 업로드 → 접수 행 → 첨부 메타 순서로 저장한다.
+ * 어느 단계든 실패하면 앞서 만든 것을 정리한 뒤 오류를 던진다. 성공 후에만 접수 완료로 응답해야 한다.
  */
 export async function saveQuote(
   record: Omit<QuoteRecord, 'attachments'>,
   attachments: PendingAttachment[],
 ): Promise<void> {
-  await withClient(async (client) => {
-    try {
-      await client.query('BEGIN');
-      await client.query(INSERT_QUOTE_SQL, [
-        record.id,
-        record.receivedAt,
-        record.type,
-        record.typeLabel,
-        record.name,
-        record.company,
-        record.phone,
-        record.address,
-        record.addressDetail,
-        record.message,
-        JSON.stringify(record.optional),
-        record.consent.agreed,
-        record.consent.version,
-        record.consent.agreedAt,
-        record.meta.ipHash,
-        record.meta.userAgent,
-        record.notification.channel,
-        record.notification.status,
-      ]);
+  const sb = getSupabase();
+  const uploaded: string[] = [];
 
-      for (const att of attachments) {
-        await client.query(INSERT_ATTACHMENT_SQL, [
-          att.id,
-          record.id,
-          safeFileName(att.originalName),
-          att.mimeType,
-          att.data.length,
-          att.data,
-        ]);
-      }
-
-      await client.query('COMMIT');
-    } catch (err) {
-      await client.query('ROLLBACK').catch(() => {});
-      throw err;
+  const cleanup = async () => {
+    if (uploaded.length) {
+      await sb.storage.from(ATTACHMENT_BUCKET).remove(uploaded).catch(() => {});
     }
-  });
+    await sb.from('quotes').delete().eq('id', record.id).then(() => undefined, () => {});
+  };
+
+  try {
+    // 1) 첨부 업로드
+    for (const att of attachments) {
+      const path = `${record.id}/${att.id}`;
+      const { error } = await sb.storage
+        .from(ATTACHMENT_BUCKET)
+        .upload(path, att.data, { contentType: att.mimeType, upsert: false });
+      if (error) throw new Error(`첨부 업로드 실패: ${error.message}`);
+      uploaded.push(path);
+    }
+
+    // 2) 접수 행
+    const { error: quoteError } = await sb.from('quotes').insert({
+      id: record.id,
+      received_at: record.receivedAt,
+      type: record.type,
+      type_label: record.typeLabel,
+      name: record.name,
+      company: record.company,
+      phone: record.phone,
+      address: record.address,
+      address_detail: record.addressDetail,
+      message: record.message,
+      optional: record.optional,
+      consent_agreed: record.consent.agreed,
+      consent_version: record.consent.version,
+      consent_agreed_at: record.consent.agreedAt,
+      ip_hash: record.meta.ipHash,
+      user_agent: record.meta.userAgent,
+      notification_channel: record.notification.channel,
+      notification_status: record.notification.status,
+    });
+    if (quoteError) throw new Error(`접수 저장 실패: ${quoteError.message}`);
+
+    // 3) 첨부 메타
+    if (attachments.length) {
+      const { error: attError } = await sb.from('quote_attachments').insert(
+        attachments.map((att) => ({
+          id: att.id,
+          quote_id: record.id,
+          original_name: safeFileName(att.originalName),
+          mime_type: att.mimeType,
+          byte_size: att.data.length,
+          storage_path: `${record.id}/${att.id}`,
+        })),
+      );
+      if (attError) throw new Error(`첨부 정보 저장 실패: ${attError.message}`);
+    }
+  } catch (err) {
+    await cleanup();
+    throw err;
+  }
 }
 
 /** 알림 발송 결과 기록 — 접수 저장과 분리되어 있어 실패해도 접수는 남는다. */
@@ -184,19 +201,27 @@ export async function updateNotification(
   quoteId: string,
   notification: NotificationState,
 ): Promise<void> {
-  await withClient((c) =>
-    c.query(UPDATE_NOTIFICATION_SQL, [
-      quoteId,
-      notification.channel,
-      notification.status,
-      notification.detail ?? null,
-    ]),
-  );
+  const { error } = await getSupabase()
+    .from('quotes')
+    .update({
+      notification_channel: notification.channel,
+      notification_status: notification.status,
+      notification_detail: notification.detail ?? null,
+    })
+    .eq('id', quoteId);
+  if (error) throw new Error(error.message);
 }
+
+type AttachmentRow = {
+  id: string;
+  original_name: string;
+  mime_type: string;
+  byte_size: number;
+};
 
 type QuoteRow = {
   id: string;
-  received_at: Date;
+  received_at: string;
   type: string;
   type_label: string;
   name: string;
@@ -208,16 +233,24 @@ type QuoteRow = {
   optional: QuoteRecord['optional'];
   consent_agreed: boolean;
   consent_version: string;
-  consent_agreed_at: Date;
+  consent_agreed_at: string;
   ip_hash: string;
   user_agent: string;
   notification_channel: string;
   notification_status: NotificationState['status'];
   notification_detail: string | null;
-  attachments: StoredAttachment[];
+  quote_attachments: AttachmentRow[] | null;
 };
 
 function toRecord(row: QuoteRow): QuoteRecord {
+  const attachments = [...(row.quote_attachments ?? [])]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((a) => ({
+      id: a.id,
+      originalName: a.original_name,
+      mimeType: a.mime_type,
+      size: a.byte_size,
+    }));
   return {
     id: row.id,
     receivedAt: new Date(row.received_at).toISOString(),
@@ -230,7 +263,7 @@ function toRecord(row: QuoteRow): QuoteRecord {
     addressDetail: row.address_detail,
     message: row.message,
     optional: row.optional,
-    attachments: row.attachments ?? [],
+    attachments,
     consent: {
       agreed: row.consent_agreed,
       version: row.consent_version,
@@ -245,10 +278,15 @@ function toRecord(row: QuoteRow): QuoteRecord {
   };
 }
 
-/** 관리자 화면용 조회 (최신순) */
+/** 관리자 화면용 조회 (최신순). 첨부는 메타데이터만 함께 가져온다(이미지 본문 제외). */
 export async function readQuotes(limit = 200): Promise<QuoteRecord[]> {
-  const res = await withClient((c) => c.query<QuoteRow>(SELECT_QUOTES_SQL, [limit]));
-  return res.rows.map(toRecord);
+  const { data, error } = await getSupabase()
+    .from('quotes')
+    .select('*, quote_attachments(id, original_name, mime_type, byte_size)')
+    .order('received_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data as QuoteRow[]).map(toRecord);
 }
 
 /** 첨부 이미지 조회 — 관리자 인증을 통과한 요청에서만 호출된다. */
@@ -260,10 +298,19 @@ export async function readAttachment(
   if (!/^Q\d{8}-[A-Z0-9]{6}$/.test(quoteId)) return null;
   if (!/^\d{2}-[0-9a-f]{8}$/.test(attachmentId)) return null;
 
-  const res = await withClient((c) =>
-    c.query<{ mime_type: string; data: Buffer }>(SELECT_ATTACHMENT_SQL, [quoteId, attachmentId]),
-  );
-  const row = res.rows[0];
+  const sb = getSupabase();
+  const { data: row, error } = await sb
+    .from('quote_attachments')
+    .select('mime_type, storage_path')
+    .eq('quote_id', quoteId)
+    .eq('id', attachmentId)
+    .maybeSingle<{ mime_type: string; storage_path: string }>();
+  if (error) throw new Error(error.message);
   if (!row) return null;
-  return { data: row.data, mimeType: row.mime_type };
+
+  const { data: blob, error: dlError } = await sb.storage
+    .from(ATTACHMENT_BUCKET)
+    .download(row.storage_path);
+  if (dlError || !blob) return null;
+  return { data: Buffer.from(await blob.arrayBuffer()), mimeType: row.mime_type };
 }

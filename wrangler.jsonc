@@ -10,6 +10,7 @@
   },
   "observability": { "enabled": true },
   "vars": {
-    "NEXT_PUBLIC_SITE_URL": "https://www.clearcheolgeo.com"
+    "NEXT_PUBLIC_SITE_URL": "https://www.clearcheolgeo.com",
+    "SUPABASE_URL": "https://zvrddrvrbarqzovobhrf.supabase.co"
   }
 }
