@@ -6,8 +6,8 @@
  */
 
 /** 대표 상담전화 — 표기용 / 링크용 값을 한 번만 정의한다. */
-const PHONE_DISPLAY = '010-8814-2234';
-const PHONE_HREF = 'tel:01088142234';
+const PHONE_DISPLAY = '010-5892-2234';
+const PHONE_HREF = 'tel:01058922234';
 
 /** 아직 확인되지 않은 운영정보는 null 로 둔다. null 이면 화면에 렌더링하지 않는다. */
 export type MaybeText = string | null;
@@ -23,7 +23,7 @@ export const siteConfig = {
     display: PHONE_DISPLAY,
     href: PHONE_HREF,
     /** 국제 표기 (구조화 데이터용) */
-    intl: '+82-10-8814-2234',
+    intl: '+82-10-5892-2234',
     /** 운영시간은 확인되지 않았으므로 null. 값이 들어오면 헤더/푸터에 자동 노출된다. */
     hours: null as MaybeText,
   },
@@ -36,17 +36,47 @@ export const siteConfig = {
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? null,
 
   /**
-   * 사업자등록 정보 — 운영자 확인 전이므로 전부 null.
-   * 값을 채우면 푸터에 자동으로 표시된다. 임의의 값을 넣지 말 것.
+   * 사업자등록 정보 — 운영자가 제공한 값만 넣는다. (2026-09-14 확인)
+   * null 인 항목은 푸터에 표시되지 않는다. 임의의 값을 넣지 말 것.
    */
   business: {
-    legalName: null as MaybeText, // 사업자등록상 상호
-    ceoName: '조호식' as MaybeText, // 대표자명 (홈페이지 표기용으로 확인됨)
-    address: null as MaybeText, // 사업장 주소
-    registrationNumber: null as MaybeText, // 사업자등록번호
-    licenses: [] as string[], // 확인된 허가·신고 정보
-    serviceAreas: [] as string[], // 확정된 영업지역
-    businessHours: null as MaybeText, // 운영시간
+    legalName: '티에스 컴퍼니' as MaybeText, // 사업자등록상 상호
+    legalNameEn: 'TS COMPANY', // 저작권 표기용 영문 상호
+    ceoName: '조호식' as MaybeText, // 대표자명
+    address: '경기도 시흥시 대야동 비둘기공원3길 10, 1층' as MaybeText, // 사업장 주소
+    registrationNumber: '761-74-00595' as MaybeText, // 사업자등록번호
+    licenses: [] as string[], // 확인된 허가·신고 정보 (미제공)
+    serviceAreas: [] as string[], // 확정된 영업지역 (미제공)
+    businessHours: null as MaybeText, // 운영시간 (미제공)
+    /** 푸터 저작권 문구 — 연도는 고정 표기(운영자 지정) */
+    copyright: 'COPYRIGHT © 2026 TS COMPANY (클리어철거) ALL RIGHTS RESERVED.',
+  },
+
+  /**
+   * 실적·수상 강조 문구 — 운영자가 근거를 확인한 항목만 enabled: true 로 켠다.
+   * (근거 없이 켜지 말 것. 확인 전에는 대체 문구(fallback)가 표시된다.)
+   */
+  achievements: {
+    /** 누적 시공 실적 */
+    projects: {
+      /** 운영자 확인 후 true */
+      enabled: false,
+      value: '10,000건+',
+      label: '누적 시공 실적',
+      /** 집계 기준·기간 등 보조 설명 (확인되면 입력, 없으면 null) */
+      note: null as MaybeText,
+    },
+    /** 고객만족도 수상 */
+    award: {
+      /** 운영자 확인 후 true */
+      enabled: false,
+      value: '5년 연속',
+      label: '고객만족도 1위 수상',
+      /** 주관기관 · 수상 부문 · 기간 (확인되면 입력, 없으면 null) */
+      note: null as MaybeText,
+    },
+    /** 두 항목 모두 확인 전일 때 실적 영역에 대신 표시하는 문구 */
+    fallback: ['철거부터 폐기물 정리까지', '현장에 맞춘 작업, 깔끔한 마무리'],
   },
 
   /** 철거지원금 안내 — 팝업과 /support 페이지가 이 값을 공유한다. */
@@ -99,8 +129,8 @@ export const siteConfig = {
     consentVersion: '2026-09-01.v1',
     /** 보유·이용기간. 운영자 확인 후 조정 가능한 설정값. */
     retentionPeriod: '상담 종료 후 1년 (동의 철회 또는 목적 달성 시 지체 없이 파기)',
-    /** 처리주체 표기. 사업자등록 정보가 확인되면 business.legalName 으로 대체한다. */
-    controllerName: '클리어철거',
+    /** 처리주체 표기 (사업자등록상 상호 + 서비스명) */
+    controllerName: '티에스 컴퍼니 (클리어철거)',
     contactPhone: PHONE_DISPLAY,
     requiredItems: '이름/담당자명, 연락처, 현장 주소, 문의사항',
     optionalItems:

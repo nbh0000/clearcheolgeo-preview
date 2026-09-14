@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Logo from '@/components/Logo';
 import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { siteConfig } from '@/config/site';
@@ -53,10 +54,7 @@ export default function Header() {
   return (
     <header className="site-header">
       <div className="container header-inner">
-        <Link href="/" className="wordmark" aria-label={`${siteConfig.brandName} 홈으로`}>
-          <span>클리어</span>
-          <span className="wordmark-accent">철거</span>
-        </Link>
+        <Logo variant="horizontal" className="header-logo" />
 
         <nav className="nav-desktop" aria-label="주요 메뉴" ref={navRef}>
           {navItems.map((item) =>

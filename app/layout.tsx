@@ -45,6 +45,7 @@ function organizationJsonLd() {
     ],
   };
   if (siteConfig.siteUrl) data.url = siteConfig.siteUrl;
+  if (siteConfig.business.legalName) data.legalName = siteConfig.business.legalName;
   if (siteConfig.business.address) data.address = siteConfig.business.address;
   return data;
 }

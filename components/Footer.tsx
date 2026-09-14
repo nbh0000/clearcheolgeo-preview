@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Logo from '@/components/Logo';
 import { siteConfig } from '@/config/site';
 import { hasPublishedProjects } from '@/content/projects';
 
@@ -8,12 +9,23 @@ import { hasPublishedProjects } from '@/content/projects';
  */
 export default function Footer() {
   const { business } = siteConfig;
-  const businessRows: { label: string; value: string }[] = [];
-  if (business.legalName) businessRows.push({ label: '상호', value: business.legalName });
+  // 값이 있는 항목만 표시한다. PC 에서는 한 줄에 정돈되고, 좁은 화면에서는 항목 단위로 줄바꿈된다.
+  const businessRows: { label: string; value: string; href?: string; numeric?: boolean }[] = [];
+  if (business.legalName)
+    businessRows.push({
+      label: '상호명',
+      value: `${business.legalName} (서비스명: ${siteConfig.brandName})`,
+    });
   if (business.ceoName) businessRows.push({ label: '대표자', value: business.ceoName });
   if (business.registrationNumber)
-    businessRows.push({ label: '사업자등록번호', value: business.registrationNumber });
+    businessRows.push({ label: '사업자등록번호', value: business.registrationNumber, numeric: true });
   if (business.address) businessRows.push({ label: '주소', value: business.address });
+  businessRows.push({
+    label: '전화',
+    value: siteConfig.phone.display,
+    href: siteConfig.phone.href,
+    numeric: true,
+  });
   if (business.businessHours) businessRows.push({ label: '운영시간', value: business.businessHours });
   if (business.licenses.length)
     businessRows.push({ label: '허가·신고', value: business.licenses.join(' · ') });
@@ -25,11 +37,8 @@ export default function Footer() {
       <div className="container">
         <div className="footer-grid">
           <div>
-            <div className="wordmark">
-              <span>클리어</span>
-              <span className="wordmark-accent">철거</span>
-            </div>
-            <p className="body-sm mt-sm">상가·인테리어철거 · 원상복구 · 폐기물처리 상담</p>
+            <Logo variant="stacked" className="footer-logo" />
+            <p className="body-sm mt-base">상가·인테리어철거 · 원상복구 · 폐기물처리 상담</p>
             <p className="caption-strong mt-base" style={{ color: 'var(--muted)' }}>
               대표 상담전화
             </p>
@@ -77,23 +86,21 @@ export default function Footer() {
         </div>
 
         <div className="legal-band">
-          {businessRows.length > 0 && (
-            <p>
-              {businessRows.map((row, i) => (
-                <span key={row.label}>
-                  {i > 0 && ' · '}
-                  {row.label} {row.value}
-                </span>
-              ))}
-            </p>
-          )}
-          <p>
-            © {new Date().getFullYear()} {siteConfig.brandName}. 문의는 대표 상담전화{' '}
-            <a className="num" href={siteConfig.phone.href}>
-              {siteConfig.phone.display}
-            </a>{' '}
-            또는 <Link href="/quote">견적문의</Link>로 남겨주세요.
-          </p>
+          <ul className="biz-list" aria-label="사업자 정보">
+            {businessRows.map((row) => (
+              <li className="biz-item" key={row.label}>
+                <span className="biz-label">{row.label}</span>
+                {row.href ? (
+                  <a className={`biz-value${row.numeric ? ' num' : ''}`} href={row.href}>
+                    {row.value}
+                  </a>
+                ) : (
+                  <span className={`biz-value${row.numeric ? ' num' : ''}`}>{row.value}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="copyright">{business.copyright}</p>
         </div>
       </div>
     </footer>

@@ -699,6 +699,10 @@ fieldset {
   border-radius: var(--r-full);
   background: var(--muted-soft);
 }
+/* 의미 단위 줄 — 줄 단위로 나누되, 좁은 화면에서는 내부 줄바꿈을 허용한다 */
+.line {
+  display: block;
+}
 .link-inline {
   color: var(--primary);
   text-decoration: underline;

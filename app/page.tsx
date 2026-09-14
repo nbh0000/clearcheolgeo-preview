@@ -9,11 +9,12 @@ import { pageMetadata } from '@/lib/seo';
 import Faq from '@/components/Faq';
 import SupportBanner from '@/components/SupportBanner';
 import CtaBand from '@/components/CtaBand';
+import Reviews from '@/components/Reviews';
+import Achievements from '@/components/Achievements';
 
 export const metadata: Metadata = pageMetadata({
   title: '클리어철거 | 상가·인테리어철거 · 폐기물처리 상담',
-  description:
-    '상가·점포·사무실의 인테리어철거와 원상복구, 사업장·가정 폐기물처리 상담. 현장 상황에 맞는 작업 범위와 견적을 안내합니다. 상담전화 010-8814-2234.',
+  description: `상가·점포·사무실의 인테리어철거와 원상복구, 사업장·가정 폐기물처리 상담. 현장 상황에 맞는 작업 범위와 견적을 안내합니다. 상담전화 ${siteConfig.phone.display}.`,
   path: '/',
 });
 
@@ -26,29 +27,28 @@ function HeroCards() {
     { k: '폐기물', v: '종류 · 물량 · 배출 장소' },
   ];
   return (
-    <div className="card-stack">
-      <div className="card-dark">
-        <p className="caption-strong" style={{ color: 'var(--on-dark-soft)' }}>
-          상담 시 함께 확인하는 항목
-        </p>
-        <div className="mt-base">
-          {rows.map((row) => (
-            <div className="kv-row" key={row.k}>
-              <span className="k">{row.k}</span>
-              <span className="v">{row.v}</span>
-            </div>
-          ))}
-        </div>
-        <p className="caption mt-base" style={{ color: 'var(--muted-soft)' }}>
-          확인된 조건에 따라 작업 범위와 견적을 안내합니다.
-        </p>
+    <div className="card-dark hero-card">
+      <p className="caption-strong" style={{ color: 'var(--on-dark-soft)' }}>
+        상담 시 함께 확인하는 항목
+      </p>
+      <div className="mt-base">
+        {rows.map((row) => (
+          <div className="kv-row" key={row.k}>
+            <span className="k">{row.k}</span>
+            <span className="v">{row.v}</span>
+          </div>
+        ))}
       </div>
-      <div className="stack-back">
+      <p className="caption mt-base" style={{ color: 'var(--muted-soft)' }}>
+        확인된 조건에 따라 작업 범위와 견적을 안내합니다.
+      </p>
+      {/* 하단 안내 — 별도 카드로 겹쳐 두지 않고 같은 카드 안에서 구분선으로 정리 */}
+      <div className="hero-card-note">
         <p className="caption-strong" style={{ color: 'var(--on-dark-soft)' }}>
-          철거 + 폐기물처리
+          철거와 폐기물 정리
         </p>
         <p className="title-sm mt-xs" style={{ color: 'var(--on-dark)' }}>
-          한 번의 상담으로 함께 정리
+          한 번의 상담으로 함께 안내합니다.
         </p>
       </div>
     </div>
@@ -65,9 +65,10 @@ export default function HomePage() {
         <div className="container hero-grid">
           <div>
             <p className="badge-pill badge-pill-dark">상가·인테리어철거 · 폐기물처리</p>
-            <h1 className="display-mega mt-base" id="hero-title">
-              철거부터 폐기물 정리까지,
-              <br />한 번에 클리어.
+            <h1 className="display-mega hero-title mt-base" id="hero-title">
+              <span className="hero-line">철거부터</span>
+              <span className="hero-line">폐기물 정리까지,</span>
+              <span className="hero-line">한 번에 클리어</span>
             </h1>
             <p className="lead hero-lead mt-md">
               상가·인테리어철거, 원상복구, 폐기물처리 상담.
@@ -93,6 +94,9 @@ export default function HomePage() {
           <HeroCards />
         </div>
       </section>
+
+      {/* 1-1. 실적 소개 (확인된 항목만 표시, 미확인 시 대체 문구) */}
+      <Achievements />
 
       {/* 2. 사업분야 */}
       <section className="section" aria-labelledby="services-title">
@@ -200,6 +204,9 @@ export default function HomePage() {
           </ol>
         </div>
       </section>
+
+      {/* 6-1. 고객 후기 */}
+      <Reviews />
 
       {/* 7. 자주 묻는 질문 */}
       <section className="section" aria-labelledby="faq-title">

@@ -1,127 +1,132 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { siteConfig } from '@/config/site';
-import { services } from '@/content/services';
-import { principles, processSteps } from '@/content/home';
 import { pageMetadata } from '@/lib/seo';
+import Achievements from '@/components/Achievements';
 import CtaBand from '@/components/CtaBand';
 
 export const metadata: Metadata = pageMetadata({
   title: '회사소개',
   description:
-    '클리어철거는 상가·인테리어철거와 원상복구, 폐기물처리 상담을 제공하는 현장 중심의 브랜드입니다. 작업 범위와 진행 절차를 명확히 안내합니다.',
+    '클리어철거는 상가·인테리어 철거와 원상복구, 폐기물 정리를 함께 상담하고 진행하는 현장 중심의 전문 브랜드입니다. 명확한 견적, 체계적인 작업, 깔끔한 마무리를 기준으로 합니다.',
   path: '/about',
 });
 
+/** 본문 문단 (운영자 제공 원문) */
+const paragraphs = [
+  '철거는 단순히 부수는 일이 아닙니다. 현장의 구조와 작업 범위를 파악하고, 반출 동선과 일정까지 고려해 공간을 다음 단계로 준비하는 일입니다.',
+  '클리어철거는 상가·인테리어 철거와 원상복구, 폐기물 정리를 함께 상담하고 진행하는 현장 중심의 전문 브랜드입니다. 필요한 작업은 무엇인지, 어디까지 진행해야 하는지, 견적은 어떤 기준으로 정해지는지 고객이 이해할 수 있도록 설명하는 것부터 시작합니다.',
+  '현장마다 다른 조건에는 그에 맞는 작업이 필요합니다. 클리어철거는 철거 범위와 주변 환경, 반출 여건을 살피고 작업의 시작부터 마무리까지 이어지는 과정을 꼼꼼하게 준비합니다. 철거가 끝난 뒤 남는 정리의 부담까지 줄이는 것, 그것이 클리어철거가 생각하는 작업의 완성입니다.',
+  '좋은 철거의 기준은 작업이 끝난 뒤 더 분명해집니다. 정리된 현장, 이해하기 쉬운 견적, 다시 맡길 수 있는 신뢰. 클리어철거는 이 세 가지를 기준으로 고객의 다음 시작을 함께 준비합니다.',
+];
+
+/** 강점 소개 (운영자 제공 원문) */
+const strengths = [
+  {
+    title: '견적은 명확하게',
+    body: '작업 범위와 현장 조건을 확인하고, 필요한 공정과 견적의 기준을 이해하기 쉽게 안내합니다.',
+  },
+  {
+    title: '작업은 체계적으로',
+    body: '철거 범위부터 반출 동선까지 현장 여건을 고려해 작업을 준비합니다.',
+  },
+  {
+    title: '마무리는 깔끔하게',
+    body: '철거와 폐기물 정리를 함께 상담해 고객이 여러 과정을 따로 챙겨야 하는 부담을 줄입니다.',
+  },
+];
+
+/**
+ * 실적·수상 강조 문단 — 운영자가 확인해 켠 항목만으로 문장을 만든다.
+ * 둘 다 확인 전이면 문단 자체를 표시하지 않는다.
+ */
+function highlightParagraph(): string | null {
+  const { projects, award } = siteConfig.achievements;
+  const parts: string[] = [];
+  if (projects.enabled) parts.push('10,000건 이상의 시공 경험');
+  if (award.enabled) parts.push('5년 연속 고객만족도 1위 수상');
+  if (parts.length === 0) return null;
+  return `${parts.join('과 ')}. 클리어철거는 현장에서 축적한 노하우를 바탕으로 철거부터 폐기물 정리까지 완성도 높은 서비스를 제공합니다.`;
+}
+
 export default function AboutPage() {
+  const highlight = highlightParagraph();
+
   return (
     <>
+      {/* 제목 · 도입 */}
       <section className="page-hero">
         <div className="container">
           <p className="eyebrow">회사소개</p>
           <h1 className="display-lg mt-sm">
-            철거의 시작부터,
-            <br />
-            정리의 마무리까지.
+            <span className="line">철거는 정교하게.</span>
+            <span className="line">마무리는 빈틈없이.</span>
           </h1>
-        </div>
-      </section>
-
-      {/* ① 브랜드 소개 */}
-      <section className="section">
-        <div className="container">
-          <div className="grid grid-2">
-            <div>
-              <h2 className="display-sm">현장 중심의 철거·정리 브랜드</h2>
-            </div>
-            <div className="stack">
-              <p className="body-md">
-                클리어철거는 상가·인테리어철거와 원상복구, 폐기물처리 상담을 제공하는 현장 중심의
-                브랜드입니다.
-              </p>
-              <p className="body-md">
-                매장을 정리하거나 새로운 공간을 준비할 때, 고객이 먼저 확인해야 할 작업 범위와 진행
-                절차를 명확히 안내하고자 합니다.
-              </p>
-              <p className="body-md">
-                현장 상황을 확인하고 필요한 작업을 협의하며, 견적부터 마무리까지 이해하기 쉬운 설명을
-                지향합니다.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ② 두 가지 사업분야 */}
-      <section className="section band-soft" aria-labelledby="about-services">
-        <div className="container">
-          <p className="eyebrow">사업분야</p>
-          <h2 className="display-sm mt-sm" id="about-services">
-            철거와 폐기물처리
-          </h2>
-          <div className="grid grid-2 mt-xl">
-            {services.map((service) => (
-              <article className="card" key={service.slug}>
-                <h3 className="title-lg">{service.cardTitle}</h3>
-                <p className="body-md mt-sm">{service.cardBody}</p>
-                <p className="mt-base">
-                  <Link className="btn-tertiary" href={service.href}>
-                    {service.cardCta} →
-                  </Link>
-                </p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ③ 업무 원칙 */}
-      <section className="section" aria-labelledby="about-principles">
-        <div className="container">
-          <p className="eyebrow">업무 원칙</p>
-          <h2 className="display-sm mt-sm" id="about-principles">
-            일은 확실하게, 설명은 명확하게, 마무리는 깔끔하게.
-          </h2>
-          <div className="grid grid-4 mt-xl">
-            {principles.map((item, i) => (
-              <div className="card" key={item.title}>
-                <span className="icon-plate num">{String(i + 1).padStart(2, '0')}</span>
-                <h3 className="title-md mt-base">{item.title}</h3>
-                <p className="body-sm mt-xs">{item.body}</p>
-              </div>
-            ))}
-          </div>
-          <p className="caption mt-lg">
-            위 원칙은 홈페이지 운영 원칙 초안입니다. 실제 운영 방식과 다른 내용이 있으면 수정할 수
-            있습니다.
+          <p className="lead mt-md" style={{ maxWidth: '40ch' }}>
+            <span className="line">잘 비워야, 다음이 제대로 시작됩니다.</span>
+            <span className="line">클리어철거는 철거부터 폐기물 정리까지,</span>
+            <span className="line">공간의 새로운 시작을 준비합니다.</span>
           </p>
         </div>
       </section>
 
-      {/* ④ 상담 및 작업 진행 과정 */}
-      <section className="section band-soft" aria-labelledby="about-process">
+      {/* 실적·수상 (확인된 항목만, 미확인 시 대체 문구) */}
+      <Achievements tone="soft" />
+
+      {/* 본문 */}
+      <section className="section" aria-labelledby="about-body">
         <div className="container">
-          <p className="eyebrow">진행 과정</p>
-          <h2 className="display-sm mt-sm" id="about-process">
-            상담접수부터 마무리 확인까지
-          </h2>
-          <ol className="mt-xl stack-lg">
-            {processSteps.map((step) => (
-              <li className="card step-row" key={step.step}>
-                <span className="icon-plate num">{step.step}</span>
-                <div>
-                  <h3 className="title-md">{step.title}</h3>
-                  <p className="body-sm mt-xs">{step.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
+          <div className="grid grid-2" style={{ alignItems: 'start' }}>
+            <div>
+              <p className="eyebrow">클리어철거는</p>
+              <h2 className="display-sm mt-sm" id="about-body">
+                현장을 이해하고,
+                <br />
+                다음 단계를 준비합니다.
+              </h2>
+            </div>
+            <div className="stack-lg">
+              {paragraphs.map((p) => (
+                <p className="body-md" key={p.slice(0, 20)}>
+                  {p}
+                </p>
+              ))}
+              {highlight && <p className="body-strong">{highlight}</p>}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ⑤ 전화상담과 견적문의 */}
+      {/* 강점 소개 */}
+      <section className="section band-soft" aria-labelledby="about-strengths">
+        <div className="container">
+          <p className="eyebrow">클리어철거의 기준</p>
+          <h2 className="display-sm mt-sm" id="about-strengths">
+            견적부터 마무리까지, 세 가지 기준
+          </h2>
+          <div className="grid grid-3 mt-xl">
+            {strengths.map((item, i) => (
+              <div className="card" key={item.title}>
+                <span className="icon-plate num">{String(i + 1).padStart(2, '0')}</span>
+                <h3 className="title-lg mt-base">{item.title}</h3>
+                <p className="body-md mt-sm">{item.body}</p>
+              </div>
+            ))}
+          </div>
+          <div className="btn-row mt-xl">
+            <Link className="btn btn-secondary" href="/services/demolition">
+              철거 서비스 보기
+            </Link>
+            <Link className="btn btn-secondary" href="/services/waste">
+              폐기물처리 서비스 보기
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 마지막 강조 · 상담 */}
       <CtaBand
-        title={['철거와 정리, 어디부터 물어봐야 할지', '모르셔도 괜찮습니다.']}
+        title={['비워야 할 공간은 깔끔하게.', '새롭게 시작할 준비는 든든하게.', '클리어철거.']}
         body={`현장 상황을 알려주시면 확인이 필요한 항목부터 함께 정리해 드립니다. 대표 상담전화 ${siteConfig.phone.display}`}
       />
     </>

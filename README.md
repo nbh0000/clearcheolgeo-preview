@@ -4,7 +4,7 @@
 전화상담 · 견적문의 접수 · 철거지원금 상담 유도를 목표로 구성했습니다.
 
 - 기술 스택: **Next.js 15 (App Router) · React 19 · TypeScript · PostgreSQL · 순수 CSS(디자인 토큰)**
-- 대표 상담전화: **010-8814-2234** (`tel:01088142234`)
+- 대표 상담전화: **010-5892-2234** (`tel:01058922234`)
 - 디자인 기준: 프로젝트 루트의 `DESIGN.md`
 - 배포 안내: `CLOUDTYPE.md` (클라우드타입) / `DEPLOY.md` (일반)
 
@@ -84,7 +84,9 @@ node tests/pg-server.mjs 55432 ./tests/.pgdata
 
 | 수정할 내용 | 파일 |
 | --- | --- |
-| 상호, **전화번호**, 사업자 정보, 운영시간, 지원금 문구·금액·연도·공식 링크, 팝업 on/off, 접수 기능 on/off, 개인정보 보유기간·동의문 버전 | `config/site.ts` |
+| 상호, **전화번호**, 사업자 정보·저작권 문구, 운영시간, **실적·수상 공개 여부**, 지원금 문구·금액·연도·공식 링크, 팝업 on/off, 접수 기능 on/off, 개인정보 보유기간·동의문 버전 | `config/site.ts` |
+| **고객 후기** (본문·작성자·공개 여부) | `content/reviews.ts` |
+| 로고 파일 | `public/logo/` (원본 벡터에서 추출한 SVG) · 파비콘 `app/icon.svg` |
 | 상단 메뉴 구성 | `content/nav.ts` |
 | 철거·폐기물처리 서비스 설명 | `content/services.ts` |
 | 업무 원칙 / 진행 과정 | `content/home.ts` |
@@ -163,7 +165,8 @@ node tests/pg-server.mjs 55432 ./tests/.pgdata
 
 아래 항목은 **확인되지 않아 화면에 표시하지 않았습니다.** 값이 확인되면 `config/site.ts` 에 채우면 자동으로 노출됩니다.
 
-- [ ] 사업자등록상 상호 / 사업장 주소 / 사업자등록번호 (`business`) — 대표자명은 '조호식'으로 확인됨
+- [x] 사업자등록상 상호 / 대표자 / 주소 / 사업자등록번호 — 2026-09-14 반영 완료
+- [ ] **누적 시공 실적·고객만족도 수상 근거** (`achievements`) — 확인 전이라 비공개, 대체 문구 표시 중
 - [ ] 폐기물 관련 허가·신고 정보, 직접 수행 범위와 위탁·연계 범위의 구분 (`business.licenses`)
 - [ ] 확정 영업지역 (`business.serviceAreas`)
 - [ ] 운영시간 (`phone.hours`, `business.businessHours`) — 확인 전까지 '24시간 상담·연중무휴' 표기 없음
