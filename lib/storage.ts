@@ -9,7 +9,7 @@
  *  - 사진 용량이 그대로 DB 용량이므로 요금제 저장공간을 함께 확인해야 한다. (README 참고)
  */
 import crypto from 'node:crypto';
-import { ensureSchema, getPool } from './db';
+import { withClient } from './db';
 import {
   INSERT_ATTACHMENT_SQL,
   INSERT_QUOTE_SQL,
@@ -136,49 +136,47 @@ export async function saveQuote(
   record: Omit<QuoteRecord, 'attachments'>,
   attachments: PendingAttachment[],
 ): Promise<void> {
-  await ensureSchema();
-  const client = await getPool().connect();
-  try {
-    await client.query('BEGIN');
-    await client.query(INSERT_QUOTE_SQL, [
-      record.id,
-      record.receivedAt,
-      record.type,
-      record.typeLabel,
-      record.name,
-      record.company,
-      record.phone,
-      record.address,
-      record.addressDetail,
-      record.message,
-      JSON.stringify(record.optional),
-      record.consent.agreed,
-      record.consent.version,
-      record.consent.agreedAt,
-      record.meta.ipHash,
-      record.meta.userAgent,
-      record.notification.channel,
-      record.notification.status,
-    ]);
-
-    for (const att of attachments) {
-      await client.query(INSERT_ATTACHMENT_SQL, [
-        att.id,
+  await withClient(async (client) => {
+    try {
+      await client.query('BEGIN');
+      await client.query(INSERT_QUOTE_SQL, [
         record.id,
-        safeFileName(att.originalName),
-        att.mimeType,
-        att.data.length,
-        att.data,
+        record.receivedAt,
+        record.type,
+        record.typeLabel,
+        record.name,
+        record.company,
+        record.phone,
+        record.address,
+        record.addressDetail,
+        record.message,
+        JSON.stringify(record.optional),
+        record.consent.agreed,
+        record.consent.version,
+        record.consent.agreedAt,
+        record.meta.ipHash,
+        record.meta.userAgent,
+        record.notification.channel,
+        record.notification.status,
       ]);
-    }
 
-    await client.query('COMMIT');
-  } catch (err) {
-    await client.query('ROLLBACK').catch(() => {});
-    throw err;
-  } finally {
-    client.release();
-  }
+      for (const att of attachments) {
+        await client.query(INSERT_ATTACHMENT_SQL, [
+          att.id,
+          record.id,
+          safeFileName(att.originalName),
+          att.mimeType,
+          att.data.length,
+          att.data,
+        ]);
+      }
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    }
+  });
 }
 
 /** 알림 발송 결과 기록 — 접수 저장과 분리되어 있어 실패해도 접수는 남는다. */
@@ -186,13 +184,14 @@ export async function updateNotification(
   quoteId: string,
   notification: NotificationState,
 ): Promise<void> {
-  await ensureSchema();
-  await getPool().query(UPDATE_NOTIFICATION_SQL, [
-    quoteId,
-    notification.channel,
-    notification.status,
-    notification.detail ?? null,
-  ]);
+  await withClient((c) =>
+    c.query(UPDATE_NOTIFICATION_SQL, [
+      quoteId,
+      notification.channel,
+      notification.status,
+      notification.detail ?? null,
+    ]),
+  );
 }
 
 type QuoteRow = {
@@ -248,8 +247,7 @@ function toRecord(row: QuoteRow): QuoteRecord {
 
 /** 관리자 화면용 조회 (최신순) */
 export async function readQuotes(limit = 200): Promise<QuoteRecord[]> {
-  await ensureSchema();
-  const res = await getPool().query<QuoteRow>(SELECT_QUOTES_SQL, [limit]);
+  const res = await withClient((c) => c.query<QuoteRow>(SELECT_QUOTES_SQL, [limit]));
   return res.rows.map(toRecord);
 }
 
@@ -262,11 +260,9 @@ export async function readAttachment(
   if (!/^Q\d{8}-[A-Z0-9]{6}$/.test(quoteId)) return null;
   if (!/^\d{2}-[0-9a-f]{8}$/.test(attachmentId)) return null;
 
-  await ensureSchema();
-  const res = await getPool().query<{ mime_type: string; data: Buffer }>(SELECT_ATTACHMENT_SQL, [
-    quoteId,
-    attachmentId,
-  ]);
+  const res = await withClient((c) =>
+    c.query<{ mime_type: string; data: Buffer }>(SELECT_ATTACHMENT_SQL, [quoteId, attachmentId]),
+  );
   const row = res.rows[0];
   if (!row) return null;
   return { data: row.data, mimeType: row.mime_type };

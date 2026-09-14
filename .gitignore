@@ -7,3 +7,6 @@ out
 next-env.d.ts
 .claude/settings.local.json
 tests/.pgdata/
+.open-next
+.wrangler
+.dev.vars

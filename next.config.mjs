@@ -1,3 +1,8 @@
+import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
+
+// 로컬 개발(next dev) 시 Cloudflare 바인딩(Hyperdrive 등)을 사용할 수 있게 한다.
+initOpenNextCloudflareForDev();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
