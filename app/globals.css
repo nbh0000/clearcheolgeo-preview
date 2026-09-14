@@ -390,6 +390,18 @@ textarea {
   border-color: var(--ink);
 }
 
+.btn-delete {
+  min-height: 32px;
+  padding: var(--s-xs) var(--s-sm);
+  font-size: var(--fs-caption);
+  color: var(--semantic-down);
+  border-color: var(--semantic-down);
+}
+.btn-delete:hover {
+  background: var(--semantic-down);
+  color: #fff;
+}
+
 .btn-tertiary {
   background: transparent;
   color: var(--primary);

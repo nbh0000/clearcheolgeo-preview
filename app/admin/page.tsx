@@ -3,6 +3,7 @@ import { readQuotes, type QuoteRecord } from '@/lib/storage';
 import { checkDatabase, isDatabaseConfigured } from '@/lib/db';
 import { isNotifyConfigured } from '@/lib/notify';
 import { siteConfig } from '@/config/site';
+import DeleteQuoteButton from '@/components/DeleteQuoteButton';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -119,6 +120,7 @@ export default async function AdminPage() {
                   <th>첨부</th>
                   <th>동의</th>
                   <th>알림</th>
+                  <th>관리</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,6 +174,9 @@ export default async function AdminPage() {
                         <span className="caption">{r.consent.version}</span>
                       </td>
                       <td>{NOTIFY_LABEL[r.notification.status] ?? r.notification.status}</td>
+                      <td>
+                        <DeleteQuoteButton quoteId={r.id} />
+                      </td>
                     </tr>
                   );
                 })}

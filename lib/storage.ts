@@ -314,3 +314,33 @@ export async function readAttachment(
   if (dlError || !blob) return null;
   return { data: Buffer.from(await blob.arrayBuffer()), mimeType: row.mime_type };
 }
+
+/**
+ * 접수 삭제 (개인정보 파기) — 첨부 파일을 먼저 지우고 접수 행을 지운다.
+ * 첨부 메타는 ON DELETE CASCADE 로 함께 삭제된다. 관리자 인증을 통과한 요청에서만 호출된다.
+ * 존재하지 않으면 false 를 돌려준다.
+ */
+export async function deleteQuote(quoteId: string): Promise<boolean> {
+  if (!/^Q\d{8}-[A-Z0-9]{6}$/.test(quoteId)) return false;
+
+  const sb = getSupabase();
+  const { data: rows, error } = await sb
+    .from('quote_attachments')
+    .select('storage_path')
+    .eq('quote_id', quoteId);
+  if (error) throw new Error(error.message);
+
+  const paths = (rows ?? []).map((r) => r.storage_path as string);
+  if (paths.length) {
+    const { error: rmError } = await sb.storage.from(ATTACHMENT_BUCKET).remove(paths);
+    if (rmError) throw new Error(`첨부 삭제 실패: ${rmError.message}`);
+  }
+
+  const { data: deleted, error: delError } = await sb
+    .from('quotes')
+    .delete()
+    .eq('id', quoteId)
+    .select('id');
+  if (delError) throw new Error(delError.message);
+  return (deleted ?? []).length > 0;
+}
