@@ -47,6 +47,12 @@ Workers → clearcheolgeo → Settings → Build → GitHub 저장소 연결
 Workers → Settings → Domains & Routes → `www.clearcheolgeo.com` 추가.
 도메인을 Cloudflare DNS 로 옮기면(가비아에서 네임서버 변경) 커스텀 도메인·HTTPS 가 자동 처리된다.
 
+## Supabase 자동 일시정지 방지
+
+Supabase 무료 플랜은 7일간 요청이 없으면 프로젝트가 일시정지된다.
+`worker.ts` 의 `scheduled` 핸들러가 매일 03:00(UTC) `quotes` 테이블에 가벼운 조회를 보내 이를 막는다.
+(`wrangler.jsonc` → `triggers.crons`) 실행 기록은 Workers → clearcheolgeo → Observability → Logs 에서 `[cron]` 으로 확인.
+
 ## 무료 플랜 제약
 
 - 요청당 CPU 10ms, 워커 번들 3MB(gzip) — 현재 약 1MB
