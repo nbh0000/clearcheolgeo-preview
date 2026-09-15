@@ -13,22 +13,6 @@ export const metadata: Metadata = pageMetadata({
   path: '/support',
 });
 
-/** 클리어철거의 역할 — 지원금 지급·승인 주체가 아님을 명확히 한다. */
-const ourRole = [
-  {
-    title: '철거 견적 안내',
-    body: '현장의 철거 범위와 반출 조건을 확인하여 견적을 안내합니다.',
-  },
-  {
-    title: '지원 대상 확인 방법 안내',
-    body: '공고에서 정한 대상 요건을 어디서 어떻게 확인하는지 안내합니다.',
-  },
-  {
-    title: '신청 절차·준비서류 안내',
-    body: '신청 순서와 일반적으로 요구되는 서류의 종류를 안내합니다.',
-  },
-];
-
 const notOurRole = [
   '지원금을 지급하거나 지급을 대행하지 않습니다.',
   '지원 대상 여부와 지급액을 심사하거나 결정하지 않습니다.',
@@ -98,33 +82,6 @@ export default function SupportPage() {
               </a>
             </p>
           </aside>
-        </div>
-      </section>
-
-      {/* 2. 클리어철거의 역할 */}
-      <section className="sp-section sp-soft" aria-labelledby="sp-role">
-        <div className="sp-wrap">
-          <div className="sp-head">
-            <span className="hm-label">클리어철거의 역할</span>
-            <h2 className="sp-h2" id="sp-role">
-              철거 견적과 함께
-              <br />
-              확인 방법을 안내합니다.
-            </h2>
-            <p className="sp-lead">
-              점포철거비 지원은 폐업 과정의 부담을 덜기 위한 정부 지원사업입니다. 지원 여부와
-              지급액은 신청 당시의 공식 공고와 심사 결과에 따릅니다.
-            </p>
-          </div>
-          <ol className="sp-cards">
-            {ourRole.map((item, i) => (
-              <li className="sp-card" key={item.title}>
-                <span className="hm-idx">{String(i + 1).padStart(2, '0')}</span>
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
-              </li>
-            ))}
-          </ol>
         </div>
       </section>
 
