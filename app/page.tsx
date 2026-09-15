@@ -42,7 +42,7 @@ export default function HomePage() {
           <div className="hm-hero-slogan-wrap">
             <h1 className="hm-hero-slogan" id="hero-title">
               <span className="l">철거부터</span>
-              <span className="l">폐기물 처리까지,</span>
+              <span className="l">폐기물 처리까지</span>
               <span className="l">한 번에 클리어</span>
             </h1>
           </div>

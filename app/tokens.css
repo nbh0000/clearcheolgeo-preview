@@ -72,6 +72,8 @@
     'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --font-display: var(--font-sans);
   --font-mono: 'JetBrains Mono', 'Pretendard Variable', Pretendard, ui-monospace, monospace;
+  /* 메인 슬로건 전용 — 가볍고 얇은 표제 */
+  --font-slogan: 'Pretendard Variable', Pretendard, sans-serif;
 
   /* display 계열 크기 (데스크톱 기준) */
   --fs-display-mega: 80px;
