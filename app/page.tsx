@@ -22,6 +22,14 @@ function emphasize(text: string) {
   );
 }
 
+/** 히어로 오른쪽 카드 — 상담 시 확인하는 항목 */
+const checkRows = [
+  { k: '현장', v: '상가 · 사무실 · 공장 · 가정' },
+  { k: '작업', v: '전체 철거 · 부분 철거 · 원상복구' },
+  { k: '반출', v: '층수 · 엘리베이터 · 차량 진입' },
+  { k: '폐기물', v: '종류 · 양 · 배출 위치' },
+];
+
 export default function HomePage() {
   const support = siteConfig.support;
   return (
@@ -35,6 +43,7 @@ export default function HomePage() {
             {siteConfig.tagline}
           </h1>
 
+          <div className="hm-hero-grid">
           {/* 왼쪽 한 덩어리: 철거지원금 안내 + 버튼 */}
           <div className="hm-hero-block">
             {support.enabled && (
@@ -78,6 +87,26 @@ export default function HomePage() {
               </span>
               <span>폐기물처리</span>
             </p>
+          </div>
+
+          {/* 오른쪽: 전문 분야 + 상담 때 확인하는 조건 카드 */}
+          <aside className="hm-hero-card" aria-label="클리어철거 소개">
+            <p className="hm-hero-card-headline">
+              <em>상가 인테리어철거</em> · <em>폐기물처리</em> · <em>원상복구</em> 전문
+            </p>
+            <p className="caption-strong hm-hero-card-title mt-lg">상담 시 확인하는 항목</p>
+            <div className="mt-xs">
+              {checkRows.map((row) => (
+                <div className="kv-row" key={row.k}>
+                  <span className="k">{row.k}</span>
+                  <span className="v">{row.v}</span>
+                </div>
+              ))}
+            </div>
+            <p className="hm-hero-card-close">
+              이 네 가지만 알려주시면 작업 범위와 견적을 바로 안내합니다.
+            </p>
+          </aside>
           </div>
         </div>
       </section>

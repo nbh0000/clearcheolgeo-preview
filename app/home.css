@@ -392,6 +392,75 @@
   }
 }
 
+/* 히어로: 왼쪽 블록 + 오른쪽 확인 항목 카드 */
+.hm-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 580px);
+  gap: var(--s-xxl);
+  align-items: end;
+}
+.hm-hero-card {
+  padding: var(--s-xl) 36px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--r-lg);
+  background: rgba(10, 11, 13, 0.55);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  color: var(--on-dark);
+}
+.hm-hero-card {
+  margin-right: clamp(0px, 6vw, 96px);
+}
+.hm-hero-card-title {
+  color: var(--on-dark-soft);
+}
+.hm-hero-card-headline {
+  font-size: clamp(17px, 1.4vw, 20px);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--on-dark-soft);
+}
+@media (max-width: 560px) {
+  .hm-hero-card-headline {
+    white-space: normal;
+  }
+}
+.hm-hero-card-close {
+  margin-top: var(--s-lg);
+  padding-top: var(--s-base);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: var(--fs-body-sm);
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--on-dark);
+}
+.hm-hero-card-headline .grp {
+  white-space: nowrap;
+}
+.hm-hero-card-headline em {
+  font-style: normal;
+  color: var(--on-dark);
+  border-bottom: 2px solid var(--accent-amber);
+  padding-bottom: 2px;
+}
+.hm-hero-card-note {
+  color: var(--muted-soft);
+}
+.hm-hero-card-strong {
+  color: var(--on-dark);
+}
+@media (max-width: 1100px) {
+  .hm-hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-xl);
+  }
+  .hm-hero-card {
+    max-width: 640px;
+  }
+}
+
 /* 히어로 왼쪽 한 덩어리 (지원금 안내 + 버튼 + 상담 범위)
    색은 무채색 + 따뜻한 밝은색 하나만 쓰고, 버튼은 각진 사각형으로 둔다. */
 .hm-hero-block {
