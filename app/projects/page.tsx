@@ -44,9 +44,10 @@ export default async function ProjectsPage({
     }
   }
   // 등록된 사례가 없고 예시 표시가 켜져 있으면(미리보기·개발용) 예시를 보여준다.
-  if (items.length === 0 && !loadError && process.env.NEXT_PUBLIC_SHOW_SAMPLE_PROJECTS === '1') {
+  if (items.length === 0 && process.env.NEXT_PUBLIC_SHOW_SAMPLE_PROJECTS === '1') {
     items = sampleProjects;
     total = sampleProjects.length;
+    loadError = null;
   }
   const hasMore = items.length < total;
 
