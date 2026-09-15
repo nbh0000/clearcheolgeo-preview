@@ -5,6 +5,7 @@ import { pageMetadata } from '@/lib/seo';
 import { services } from '@/content/services';
 import { aboutIntro, strengths } from '@/content/about';
 import RevealInit from '@/components/RevealInit';
+import SupportBanner from '@/components/SupportBanner';
 import Logo from '@/components/Logo';
 
 export const metadata: Metadata = pageMetadata({
@@ -22,98 +23,83 @@ function emphasize(text: string) {
   );
 }
 
-/** 히어로 오른쪽 카드 — 상담 시 확인하는 항목 */
-const checkRows = [
-  { k: '현장', v: '상가 · 사무실 · 공장 · 가정' },
-  { k: '작업', v: '전체 철거 · 부분 철거 · 원상복구' },
-  { k: '반출', v: '층수 · 엘리베이터 · 차량 진입' },
-  { k: '폐기물', v: '종류 · 양 · 배출 위치' },
-];
+/** 히어로 우측 레이어드 카드 — 상담 시 확인하는 항목을 요약해 보여준다. */
+function HeroCards() {
+  const rows = [
+    { k: '현장 종류', v: '상가 · 사무실 · 공장 · 가정' },
+    { k: '작업 범위', v: '전체 · 부분 철거 / 원상복구' },
+    { k: '반출 조건', v: '층수 · 엘리베이터 · 차량 접근' },
+    { k: '폐기물', v: '종류 · 물량 · 배출 장소' },
+  ];
+  return (
+    <div className="card-dark hero-card">
+      <p className="caption-strong" style={{ color: 'var(--on-dark-soft)' }}>
+        상담 시 함께 확인하는 항목
+      </p>
+      <div className="mt-base">
+        {rows.map((row) => (
+          <div className="kv-row" key={row.k}>
+            <span className="k">{row.k}</span>
+            <span className="v">{row.v}</span>
+          </div>
+        ))}
+      </div>
+      <p className="caption mt-base" style={{ color: 'var(--muted-soft)' }}>
+        확인된 조건에 따라 작업 범위와 견적을 안내합니다.
+      </p>
+      {/* 하단 안내 — 별도 카드로 겹쳐 두지 않고 같은 카드 안에서 구분선으로 정리 */}
+      <div className="hero-card-note">
+        <p className="caption-strong" style={{ color: 'var(--on-dark-soft)' }}>
+          철거와 폐기물 정리
+        </p>
+        <p className="title-sm mt-xs" style={{ color: 'var(--on-dark)' }}>
+          한 번의 상담으로 함께 안내합니다.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
-  const support = siteConfig.support;
   return (
     <>
       {/* 1. 메인 비주얼 */}
-      <section className="hm-hero hm-dark" aria-labelledby="hero-title">
-        <div className="hm-hero-bg" aria-hidden="true" />
-        <div className="container hm-hero-inner">
-          {/* 사진 가운데 슬로건 */}
-          <div className="hm-hero-slogan-wrap">
-            <h1 className="hm-hero-slogan" id="hero-title">
-              <span className="l">철거부터</span>
-              <span className="l">폐기물 처리까지</span>
-              <span className="l">한 번에 클리어</span>
+      <section className="hero" aria-labelledby="hero-title">
+        <div className="container hero-grid">
+          <div>
+            <p className="badge-pill badge-pill-dark">상가·인테리어철거 · 폐기물처리</p>
+            <h1 className="display-mega hero-title mt-base" id="hero-title">
+              <span className="hero-line">철거부터</span>
+              <span className="hero-line">폐기물 정리까지,</span>
+              <span className="hero-line">한 번에 클리어</span>
             </h1>
-          </div>
-
-          <div className="hm-hero-grid">
-          {/* 왼쪽 한 덩어리: 철거지원금 안내 + 버튼 */}
-          <div className="hm-hero-block">
-            {support.enabled && (
-              <div className="hm-hero-support" aria-label="철거지원금 안내">
-                <span className="hm-kicker">{support.programName}</span>
-                <p className="hm-support-amount mt-lg">
-                  <span className="amt-label">점포철거비</span>
-                  <span className="amt">
-                    최대 <span className="num">600</span>만원
-                  </span>
-                </p>
-                <ul className="hm-fine">
-                  {support.disclaimer.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="hm-hero-cta">
-              <Link className="hm-btn hm-btn-solid" href="/quote?type=support">
-                철거지원금 상담하기
+            <p className="lead hero-lead mt-md">
+              상가·인테리어철거, 원상복구, 폐기물처리 상담.
+              <br />
+              현장 상황에 맞는 작업 범위와 견적을 안내합니다.
+            </p>
+            <div className="btn-row mt-lg">
+              <Link className="btn btn-primary btn-lg" href="/quote">
+                견적문의
               </Link>
-              <Link className="hm-btn hm-btn-ghost" href="/support">
-                지원금 안내 자세히 보기
-              </Link>
-              <a className="hm-hero-phone" href={siteConfig.phone.href}>
-                <span className="lbl">전화상담</span>
-                <span className="num">{siteConfig.phone.display}</span>
+              <a className="btn btn-outline-dark btn-lg" href={siteConfig.phone.href}>
+                전화상담 <span className="num">{siteConfig.phone.display}</span>
               </a>
             </div>
-
-            <p className="hm-hero-scope" aria-label="상담 범위">
-              <span>상가·인테리어철거</span>
-              <span className="dot" aria-hidden="true">
-                ·
-              </span>
-              <span>원상복구</span>
-              <span className="dot" aria-hidden="true">
-                ·
-              </span>
-              <span>폐기물처리</span>
+            <p className="caption mt-base">
+              문의는 대표 상담전화{' '}
+              <a className="num" href={siteConfig.phone.href} style={{ color: 'var(--on-dark)' }}>
+                {siteConfig.phone.display}
+              </a>{' '}
+              또는 견적문의로 남겨주세요.
             </p>
           </div>
-
-          {/* 오른쪽: 전문 분야 + 상담 때 확인하는 조건 카드 */}
-          <aside className="hm-hero-card" aria-label="클리어철거 소개">
-            <p className="hm-hero-card-headline">
-              <em>상가 인테리어철거</em> · <em>폐기물처리</em> · <em>원상복구</em> 전문
-            </p>
-            <p className="caption-strong hm-hero-card-title mt-lg">상담 시 확인하는 항목</p>
-            <div className="mt-xs">
-              {checkRows.map((row) => (
-                <div className="kv-row" key={row.k}>
-                  <span className="k">{row.k}</span>
-                  <span className="v">{row.v}</span>
-                </div>
-              ))}
-            </div>
-            <p className="hm-hero-card-close">
-              이 네 가지만 알려주시면 작업 범위와 견적을 바로 안내합니다.
-            </p>
-          </aside>
-          </div>
+          <HeroCards />
         </div>
       </section>
+
+      {/* 1-1. 철거지원금 안내 */}
+      <SupportBanner />
 
       {/* 2. 회사소개 — 왼쪽 카드(로고 + 세 가지 기준) · 오른쪽 소개 */}
       <section className="hm-section hm-light" id="about" aria-labelledby="about-title">

@@ -1470,3 +1470,8 @@ html:not(.js-reveal) .hm-about-point {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* 원래 히어로(검은 배경) 복구 — 고정 헤더 아래 여백 확보 */
+.hero {
+  padding-top: calc(var(--header-h) + var(--s-xxl));
+}
