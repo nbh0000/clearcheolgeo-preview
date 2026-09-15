@@ -98,9 +98,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 1-1. 철거지원금 안내 */}
-      <SupportBanner />
-
       {/* 2. 회사소개 — 왼쪽 카드(로고 + 세 가지 기준) · 오른쪽 소개 */}
       <section className="hm-section hm-light" id="about" aria-labelledby="about-title">
         <div className="hm-wrap">
@@ -155,6 +152,9 @@ export default function HomePage() {
 
         </div>
       </section>
+
+      {/* 2-1. 철거지원금 안내 */}
+      <SupportBanner />
 
       {/* 3. 사업분야 (사업분야 페이지 내용) */}
       <section className="hm-section" id="services" aria-labelledby="services-title">
