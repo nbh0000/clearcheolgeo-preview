@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { siteConfig } from '@/config/site';
 import { pageMetadata } from '@/lib/seo';
 import { services } from '@/content/services';
-import { aboutIntro, paragraphs, strengths, highlightParagraph } from '@/content/about';
+import { aboutIntro, strengths } from '@/content/about';
 import RevealInit from '@/components/RevealInit';
 import Logo from '@/components/Logo';
 
@@ -24,7 +24,6 @@ function emphasize(text: string) {
 
 export default function HomePage() {
   const support = siteConfig.support;
-  const highlight = highlightParagraph();
   return (
     <>
       {/* 1. 메인 비주얼 */}
@@ -93,7 +92,7 @@ export default function HomePage() {
               </div>
               <ol className="hm-about-list">
                 {strengths.map((item, i) => (
-                  <li key={item.title}>
+                  <li key={item.title} data-reveal style={{ '--d': `${200 + i * 120}ms` } as React.CSSProperties}>
                     <span className="hm-about-icon" aria-hidden="true">
                       {String(i + 1).padStart(2, '0')}
                     </span>
@@ -135,19 +134,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* 본문 문단 — 작게 2열 */}
-          <div className="hm-about-paras">
-            {paragraphs.map((text, i) => (
-              <p key={text.slice(0, 20)} data-reveal style={{ '--d': `${i * 80}ms` } as React.CSSProperties}>
-                {text}
-              </p>
-            ))}
-            {highlight && (
-              <p className="hm-para-strong" data-reveal>
-                {highlight}
-              </p>
-            )}
-          </div>
         </div>
       </section>
 
