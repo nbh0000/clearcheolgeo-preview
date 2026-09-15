@@ -38,10 +38,14 @@ export default function HomePage() {
       <section className="hm-hero hm-dark" aria-labelledby="hero-title">
         <div className="hm-hero-bg" aria-hidden="true" />
         <div className="container hm-hero-inner">
-          {/* 화면에는 사진만 보이고, 제목은 검색엔진·스크린리더용으로만 남긴다 */}
-          <h1 className="sr-only" id="hero-title">
-            {siteConfig.tagline}
-          </h1>
+          {/* 사진 가운데 슬로건 */}
+          <div className="hm-hero-slogan-wrap">
+            <h1 className="hm-hero-slogan" id="hero-title">
+              <span className="l">철거부터</span>
+              <span className="l">폐기물 처리까지,</span>
+              <span className="l">한 번에 클리어</span>
+            </h1>
+          </div>
 
           <div className="hm-hero-grid">
           {/* 왼쪽 한 덩어리: 철거지원금 안내 + 버튼 */}
