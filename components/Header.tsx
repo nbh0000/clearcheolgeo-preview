@@ -50,13 +50,10 @@ export default function Header() {
 
   const isCurrent = (href: string) =>
     pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
-  // 메인은 어두운 첫 화면에서 시작하므로 헤더도 같은 톤으로 맞춘다.
-  const onHome = pathname === '/';
-
   return (
-    <header className={`site-header${onHome ? ' site-header-dark' : ''}`}>
+    <header className="site-header">
       <div className="container header-inner">
-        <Logo variant="horizontal" className="header-logo" onDark={onHome} />
+        <Logo variant="horizontal" className="header-logo" />
 
         <nav className="nav-desktop" aria-label="주요 메뉴" ref={navRef}>
           {navItems.map((item) =>
