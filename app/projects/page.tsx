@@ -40,7 +40,9 @@ export default async function ProjectsPage({
       items = res.items;
       total = res.total;
     } catch (err) {
-      loadError = err instanceof Error ? err.message : '사례를 불러오지 못했습니다.';
+      // 공개 페이지에서는 오류 문구 대신 빈 상태를 보여준다 (원인은 서버 로그로만 남긴다).
+      console.error('[projects] 목록 조회 실패', err instanceof Error ? err.message : err);
+      loadError = null;
     }
   }
   // 등록된 사례가 없고 예시 표시가 켜져 있으면(미리보기·개발용) 예시를 보여준다.

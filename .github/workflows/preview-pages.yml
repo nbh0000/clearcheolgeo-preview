@@ -21,6 +21,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.repository == 'nbh0000/clearcheolgeo-preview'
     runs-on: ubuntu-latest
     env:
       STATIC_PREVIEW: '1'
@@ -47,6 +48,7 @@ jobs:
           path: out
 
   deploy:
+    if: github.repository == 'nbh0000/clearcheolgeo-preview'
     needs: build
     runs-on: ubuntu-latest
     environment:

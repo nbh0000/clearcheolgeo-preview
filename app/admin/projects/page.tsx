@@ -65,9 +65,8 @@ export default async function AdminProjectsPage() {
             </p>
             <p className="mt-xs">{table.detail}</p>
             <p className="mt-xs">
-              Supabase 대시보드 → SQL Editor 에서 <strong>supabase/schema.sql</strong> 의 시공사례
-              부분(projects · project_photos 테이블, project-photos 버킷)을 실행한 뒤 이 화면을 새로
-              고쳐 주세요.
+              Supabase 연결(SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY)을 확인해 주세요. 저장소
+              버킷은 연결만 되면 자동으로 만들어집니다.
             </p>
           </div>
         )}

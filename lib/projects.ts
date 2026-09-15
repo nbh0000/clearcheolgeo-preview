@@ -1,8 +1,10 @@
 /**
- * 시공사례 저장·조회 (Supabase)
+ * 시공사례 저장·조회 (Supabase Storage)
  * ------------------------------------------------------------
- * 사례 1건은 projects 테이블에, 사진은 공개 Storage 버킷(project-photos)에 저장하고
- * project_photos 에는 메타데이터만 남긴다. 사진은 공개 URL 로 바로 표시한다.
+ * 별도 테이블 없이 공개 Storage 버킷(project-photos) 하나만 쓴다.
+ *  - 사진: <사례ID>/<사진ID>.jpg 로 저장하고 공개 URL 로 표시한다.
+ *  - 목록·본문: _index/projects.json 한 파일에 모두 담는다. (관리자 1명이 고치는 규모라 충분하다)
+ *  - 버킷이 없으면 처음 쓸 때 자동으로 만든다. → SQL 실행 등 별도 준비가 필요 없다.
  *
  * 등록·수정·삭제는 관리자 인증(middleware.ts)을 통과한 API 에서만 호출한다.
  * 공개 페이지는 published = true 인 사례만 읽는다.
@@ -10,8 +12,9 @@
 import crypto from 'node:crypto';
 import { getSupabase } from './db';
 
-/** 시공사례 사진 버킷 (공개) */
+/** 시공사례 버킷 (공개) */
 export const PROJECT_BUCKET = 'project-photos';
+const INDEX_PATH = '_index/projects.json';
 
 export const PROJECT_LIMITS = {
   title: 80,
@@ -82,6 +85,17 @@ export type PendingPhoto = {
   height: number | null;
 };
 
+/** 인덱스 파일에 저장되는 형태 (URL 은 저장하지 않고 경로만 둔다) */
+type StoredPhoto = {
+  id: string;
+  path: string;
+  mimeType: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+};
+type StoredProject = Omit<ProjectRecord, 'photos' | 'isSample'> & { photos: StoredPhoto[] };
+
 /** 사례 식별자: P + KST 날짜 + 랜덤 6자리 (예: P20260915-K3F9QA) */
 export function newProjectId(now = new Date()): string {
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
@@ -147,66 +161,72 @@ export function validateProjectInput(raw: Record<string, unknown>): {
   return { value, errors };
 }
 
-type PhotoRow = {
-  id: string;
-  storage_path: string;
-  mime_type: string;
-  byte_size: number;
-  width: number | null;
-  height: number | null;
-  sort_order: number;
-};
+// ------------------------------------------------------------
+// 저장소 (버킷 + 인덱스 파일)
+// ------------------------------------------------------------
 
-type ProjectRow = {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  published: boolean;
-  sort_order: number;
-  title: string;
-  usage: string;
-  region: string;
-  scope: string;
-  area_text: string;
-  duration_text: string;
-  amount_text: string;
-  description: string;
-  project_photos: PhotoRow[] | null;
-};
-
-const SELECT = '*, project_photos(id, storage_path, mime_type, byte_size, width, height, sort_order)';
+/** 버킷이 없으면 만든다. 이미 있으면 그대로 둔다. */
+export async function ensureProjectBucket(): Promise<void> {
+  const sb = getSupabase();
+  const { data } = await sb.storage.getBucket(PROJECT_BUCKET);
+  if (data) return;
+  const { error } = await sb.storage.createBucket(PROJECT_BUCKET, {
+    public: true,
+    fileSizeLimit: PROJECT_LIMITS.maxPhotoBytes,
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/json'],
+  });
+  // 동시에 두 번 만들려다 이미 생긴 경우는 무시한다.
+  if (error && !/already exists/i.test(error.message)) {
+    throw new Error(`시공사례 저장소를 만들지 못했습니다: ${error.message}`);
+  }
+}
 
 function publicUrl(storagePath: string): string {
   return getSupabase().storage.from(PROJECT_BUCKET).getPublicUrl(storagePath).data.publicUrl;
 }
 
-function toRecord(row: ProjectRow): ProjectRecord {
-  const photos = [...(row.project_photos ?? [])]
-    .sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
-    .map((ph) => ({
+async function readIndex(): Promise<StoredProject[]> {
+  const sb = getSupabase();
+  const { data, error } = await sb.storage.from(PROJECT_BUCKET).download(INDEX_PATH);
+  if (error || !data) {
+    // 아직 사례를 하나도 등록하지 않았거나 버킷이 없는 상태
+    const msg = error?.message ?? '';
+    if (/not found|does not exist|Bucket not found|Object not found/i.test(msg) || !error) return [];
+    throw new Error(`시공사례 목록을 읽지 못했습니다: ${msg}`);
+  }
+  try {
+    const parsed = JSON.parse(await data.text()) as { projects?: StoredProject[] };
+    return Array.isArray(parsed.projects) ? parsed.projects : [];
+  } catch {
+    throw new Error('시공사례 목록 파일이 손상되었습니다.');
+  }
+}
+
+async function writeIndex(projects: StoredProject[]): Promise<void> {
+  const sb = getSupabase();
+  const body = JSON.stringify({ version: 1, updatedAt: new Date().toISOString(), projects }, null, 2);
+  const { error } = await sb.storage
+    .from(PROJECT_BUCKET)
+    .upload(INDEX_PATH, Buffer.from(body, 'utf8'), { contentType: 'application/json', upsert: true, cacheControl: '0' });
+  if (error) throw new Error(`시공사례 목록을 저장하지 못했습니다: ${error.message}`);
+}
+
+function toRecord(p: StoredProject): ProjectRecord {
+  return {
+    ...p,
+    photos: p.photos.map((ph) => ({
       id: ph.id,
-      url: publicUrl(ph.storage_path),
-      mimeType: ph.mime_type,
-      size: ph.byte_size,
+      url: publicUrl(ph.path),
+      mimeType: ph.mimeType,
+      size: ph.size,
       width: ph.width,
       height: ph.height,
-    }));
-  return {
-    id: row.id,
-    createdAt: new Date(row.created_at).toISOString(),
-    updatedAt: new Date(row.updated_at).toISOString(),
-    published: row.published,
-    sortOrder: row.sort_order,
-    title: row.title,
-    usage: row.usage,
-    region: row.region,
-    scope: row.scope,
-    areaText: row.area_text,
-    durationText: row.duration_text,
-    amountText: row.amount_text,
-    description: row.description,
-    photos,
+    })),
   };
+}
+
+function sortProjects(list: StoredProject[]): StoredProject[] {
+  return [...list].sort((a, b) => b.sortOrder - a.sortOrder || b.createdAt.localeCompare(a.createdAt));
 }
 
 /** 사례 목록 (최신순). 공개 페이지는 publishedOnly = true 로 부른다. */
@@ -217,39 +237,31 @@ export async function listProjects(opts: {
 }): Promise<{ items: ProjectRecord[]; total: number }> {
   const limit = opts.limit ?? 50;
   const offset = opts.offset ?? 0;
-  let q = getSupabase()
-    .from('projects')
-    .select(SELECT, { count: 'exact' })
-    .order('sort_order', { ascending: false })
-    .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1);
-  if (opts.publishedOnly) q = q.eq('published', true);
-  const { data, error, count } = await q;
-  if (error) throw new Error(error.message);
-  return { items: (data as ProjectRow[]).map(toRecord), total: count ?? 0 };
+  let all = sortProjects(await readIndex());
+  if (opts.publishedOnly) all = all.filter((p) => p.published);
+  return { items: all.slice(offset, offset + limit).map(toRecord), total: all.length };
 }
 
 export async function getProject(id: string): Promise<ProjectRecord | null> {
   if (!isProjectId(id)) return null;
-  const { data, error } = await getSupabase().from('projects').select(SELECT).eq('id', id).maybeSingle();
-  if (error) throw new Error(error.message);
-  return data ? toRecord(data as ProjectRow) : null;
+  const found = (await readIndex()).find((p) => p.id === id);
+  return found ? toRecord(found) : null;
 }
 
-/** 시공사례 테이블이 준비됐는지 확인 (관리자 화면 안내용) */
+/** 저장소가 준비됐는지 확인 (관리자 화면 안내용). 없으면 만들어 본다. */
 export async function checkProjectsTable(): Promise<{ ok: boolean; detail?: string }> {
   try {
-    const { error } = await getSupabase().from('projects').select('id', { head: true, count: 'exact' });
-    if (error) return { ok: false, detail: error.message };
+    await ensureProjectBucket();
+    await readIndex();
     return { ok: true };
   } catch (err) {
     return { ok: false, detail: err instanceof Error ? err.message : '알 수 없는 오류' };
   }
 }
 
-async function uploadPhotos(projectId: string, photos: PendingPhoto[], startOrder: number) {
+async function uploadPhotos(projectId: string, photos: PendingPhoto[]): Promise<StoredPhoto[]> {
   const sb = getSupabase();
-  const uploaded: string[] = [];
+  const stored: StoredPhoto[] = [];
   try {
     for (const ph of photos) {
       const ext = ph.mimeType === 'image/png' ? 'png' : ph.mimeType === 'image/webp' ? 'webp' : 'jpg';
@@ -258,50 +270,42 @@ async function uploadPhotos(projectId: string, photos: PendingPhoto[], startOrde
         .from(PROJECT_BUCKET)
         .upload(path, ph.data, { contentType: ph.mimeType, upsert: false, cacheControl: '31536000' });
       if (error) throw new Error(`사진 업로드 실패: ${error.message}`);
-      uploaded.push(path);
+      stored.push({ id: ph.id, path, mimeType: ph.mimeType, size: ph.data.length, width: ph.width, height: ph.height });
     }
-    if (photos.length) {
-      const { error } = await sb.from('project_photos').insert(
-        photos.map((ph, i) => ({
-          id: ph.id,
-          project_id: projectId,
-          storage_path: uploaded[i],
-          mime_type: ph.mimeType,
-          byte_size: ph.data.length,
-          width: ph.width,
-          height: ph.height,
-          sort_order: startOrder + i,
-        })),
-      );
-      if (error) throw new Error(`사진 정보 저장 실패: ${error.message}`);
-    }
+    return stored;
   } catch (err) {
-    if (uploaded.length) await sb.storage.from(PROJECT_BUCKET).remove(uploaded).catch(() => {});
+    if (stored.length) await sb.storage.from(PROJECT_BUCKET).remove(stored.map((s) => s.path)).catch(() => {});
     throw err;
   }
 }
 
-/** 사례 등록 — 행 저장 → 사진 업로드·메타 저장. 실패하면 만든 것을 정리한다. */
+/** 사례 등록 — 버킷 준비 → 사진 업로드 → 인덱스에 추가. 실패하면 올린 사진을 정리한다. */
 export async function createProject(input: ProjectInput, photos: PendingPhoto[]): Promise<string> {
-  const sb = getSupabase();
+  await ensureProjectBucket();
   const id = newProjectId();
-  const { error } = await sb.from('projects').insert({
-    id,
-    published: input.published,
-    title: input.title,
-    usage: input.usage,
-    region: input.region,
-    scope: input.scope,
-    area_text: input.areaText,
-    duration_text: input.durationText,
-    amount_text: input.amountText,
-    description: input.description,
-  });
-  if (error) throw new Error(`사례 저장 실패: ${error.message}`);
+  const now = new Date().toISOString();
+  const stored = await uploadPhotos(id, photos);
   try {
-    await uploadPhotos(id, photos, 0);
+    const list = await readIndex();
+    list.push({
+      id,
+      createdAt: now,
+      updatedAt: now,
+      published: input.published,
+      sortOrder: 0,
+      title: input.title,
+      usage: input.usage,
+      region: input.region,
+      scope: input.scope,
+      areaText: input.areaText,
+      durationText: input.durationText,
+      amountText: input.amountText,
+      description: input.description,
+      photos: stored,
+    });
+    await writeIndex(list);
   } catch (err) {
-    await sb.from('projects').delete().eq('id', id).then(() => undefined, () => {});
+    if (stored.length) await getSupabase().storage.from(PROJECT_BUCKET).remove(stored.map((s) => s.path)).catch(() => {});
     throw err;
   }
   return id;
@@ -316,66 +320,51 @@ export async function updateProject(
   photoOrder: string[],
 ): Promise<boolean> {
   if (!isProjectId(id)) return false;
-  const sb = getSupabase();
-  const current = await getProject(id);
-  if (!current) return false;
+  await ensureProjectBucket();
+  const list = await readIndex();
+  const idx = list.findIndex((p) => p.id === id);
+  if (idx < 0) return false;
+  const current = list[idx];
 
-  const { error } = await sb
-    .from('projects')
-    .update({
-      published: input.published,
-      title: input.title,
-      usage: input.usage,
-      region: input.region,
-      scope: input.scope,
-      area_text: input.areaText,
-      duration_text: input.durationText,
-      amount_text: input.amountText,
-      description: input.description,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id);
-  if (error) throw new Error(`사례 수정 실패: ${error.message}`);
-
-  // 사진 삭제
   const removable = removePhotoIds.filter((pid) => isPhotoId(pid) && current.photos.some((p) => p.id === pid));
-  if (removable.length) {
-    const { data: rows, error: qErr } = await sb
-      .from('project_photos')
-      .select('storage_path')
-      .eq('project_id', id)
-      .in('id', removable);
-    if (qErr) throw new Error(qErr.message);
-    const paths = (rows ?? []).map((r) => r.storage_path as string);
-    if (paths.length) await sb.storage.from(PROJECT_BUCKET).remove(paths).catch(() => {});
-    const { error: dErr } = await sb.from('project_photos').delete().eq('project_id', id).in('id', removable);
-    if (dErr) throw new Error(dErr.message);
-  }
+  const remaining = current.photos.filter((p) => !removable.includes(p.id));
+  const ordered = [
+    ...photoOrder.map((pid) => remaining.find((p) => p.id === pid)).filter((p): p is StoredPhoto => Boolean(p)),
+    ...remaining.filter((p) => !photoOrder.includes(p.id)),
+  ];
+  const added = await uploadPhotos(id, newPhotos);
 
-  // 남은 사진 순서
-  const remaining = current.photos.filter((p) => !removable.includes(p.id)).map((p) => p.id);
-  const ordered = [...photoOrder.filter((pid) => remaining.includes(pid)), ...remaining.filter((pid) => !photoOrder.includes(pid))];
-  for (let i = 0; i < ordered.length; i += 1) {
-    await sb.from('project_photos').update({ sort_order: i }).eq('project_id', id).eq('id', ordered[i]);
-  }
+  list[idx] = {
+    ...current,
+    published: input.published,
+    title: input.title,
+    usage: input.usage,
+    region: input.region,
+    scope: input.scope,
+    areaText: input.areaText,
+    durationText: input.durationText,
+    amountText: input.amountText,
+    description: input.description,
+    updatedAt: new Date().toISOString(),
+    photos: [...ordered, ...added],
+  };
+  await writeIndex(list);
 
-  // 새 사진
-  await uploadPhotos(id, newPhotos, ordered.length);
+  // 인덱스 저장이 끝난 뒤에 삭제할 사진 파일을 지운다 (실패해도 목록에는 영향 없음).
+  const removePaths = current.photos.filter((p) => removable.includes(p.id)).map((p) => p.path);
+  if (removePaths.length) await getSupabase().storage.from(PROJECT_BUCKET).remove(removePaths).catch(() => {});
   return true;
 }
 
-/** 사례 삭제 — 사진 파일을 지우고 행을 지운다(메타는 CASCADE). */
+/** 사례 삭제 — 인덱스에서 빼고 사진 파일을 지운다. */
 export async function deleteProject(id: string): Promise<boolean> {
   if (!isProjectId(id)) return false;
-  const sb = getSupabase();
-  const { data: rows, error } = await sb.from('project_photos').select('storage_path').eq('project_id', id);
-  if (error) throw new Error(error.message);
-  const paths = (rows ?? []).map((r) => r.storage_path as string);
-  if (paths.length) {
-    const { error: rmError } = await sb.storage.from(PROJECT_BUCKET).remove(paths);
-    if (rmError) throw new Error(`사진 삭제 실패: ${rmError.message}`);
-  }
-  const { data: deleted, error: delError } = await sb.from('projects').delete().eq('id', id).select('id');
-  if (delError) throw new Error(delError.message);
-  return (deleted ?? []).length > 0;
+  const list = await readIndex();
+  const idx = list.findIndex((p) => p.id === id);
+  if (idx < 0) return false;
+  const [removed] = list.splice(idx, 1);
+  await writeIndex(list);
+  const paths = removed.photos.map((p) => p.path);
+  if (paths.length) await getSupabase().storage.from(PROJECT_BUCKET).remove(paths).catch(() => {});
+  return true;
 }

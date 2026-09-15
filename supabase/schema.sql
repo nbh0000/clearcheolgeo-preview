@@ -51,46 +51,8 @@ VALUES ('quote-attachments', 'quote-attachments', false, 10485760, ARRAY['image/
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- 시공사례 (관리자 페이지에서 등록 · 공개 페이지에 표시)
+-- 시공사례
 -- ============================================================
-CREATE TABLE IF NOT EXISTS public.projects (
-  id             TEXT PRIMARY KEY,
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-  published      BOOLEAN NOT NULL DEFAULT true,
-  sort_order     INTEGER NOT NULL DEFAULT 0,
-  title          TEXT NOT NULL DEFAULT '',
-  usage          TEXT NOT NULL DEFAULT '',
-  region         TEXT NOT NULL DEFAULT '',
-  scope          TEXT NOT NULL DEFAULT '',
-  area_text      TEXT NOT NULL DEFAULT '',
-  duration_text  TEXT NOT NULL DEFAULT '',
-  amount_text    TEXT NOT NULL DEFAULT '',
-  description    TEXT NOT NULL DEFAULT ''
-);
-
-CREATE INDEX IF NOT EXISTS projects_created_at_idx ON public.projects (created_at DESC);
-
--- 사진 본문은 공개 Storage 버킷(project-photos)에 두고, 여기에는 메타데이터만 둔다.
-CREATE TABLE IF NOT EXISTS public.project_photos (
-  id            TEXT NOT NULL,
-  project_id    TEXT NOT NULL REFERENCES public.projects (id) ON DELETE CASCADE,
-  storage_path  TEXT NOT NULL,
-  mime_type     TEXT NOT NULL,
-  byte_size     INTEGER NOT NULL,
-  width         INTEGER,
-  height        INTEGER,
-  sort_order    INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (project_id, id)
-);
-
-CREATE INDEX IF NOT EXISTS project_photos_project_idx ON public.project_photos (project_id);
-
--- 테이블은 service_role 로만 읽고 쓴다 (공개 페이지도 서버에서 읽는다).
-ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.project_photos ENABLE ROW LEVEL SECURITY;
-
--- 시공사례 사진용 공개 버킷 (누구나 URL 로 볼 수 있음 · 업로드는 service_role 만)
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('project-photos', 'project-photos', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp'])
-ON CONFLICT (id) DO NOTHING;
+-- 시공사례는 별도 테이블 없이 Storage 버킷(project-photos) 하나만 사용한다.
+-- 버킷은 관리자 화면에서 처음 쓸 때 앱이 자동으로 만들므로 여기서 할 일은 없다.
+-- (사진: <사례ID>/<사진ID>.jpg · 목록: _index/projects.json)
