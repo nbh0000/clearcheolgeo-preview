@@ -15,10 +15,10 @@ export default function SupportBanner() {
         <div className="hm-support-grid">
           <div>
             <span className="hm-label">{cfg.programName}</span>
-            <h2 className="hm-support-title mt-md" id="support-banner-title">
-              폐업 예정 점포의 철거비 지원
+            <h2 className="sr-only" id="support-banner-title">
+              점포철거비 지원 안내
             </h2>
-            <p className="hm-display hm-display-lg hm-support-amount">
+            <p className="hm-display hm-display-lg hm-support-amount mt-md">
               점포철거비
               <br />
               <span className="amt">

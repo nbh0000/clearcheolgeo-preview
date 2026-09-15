@@ -710,7 +710,7 @@
   margin-top: var(--s-base);
 }
 .hm-support-amount .amt {
-  color: var(--primary);
+  color: var(--accent-amber);
 }
 .hm-support-amount .amt .num {
   font-weight: 600;
