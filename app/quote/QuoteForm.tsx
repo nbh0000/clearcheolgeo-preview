@@ -31,7 +31,14 @@ declare global {
   }
 }
 
-export default function QuoteForm({ initialType }: { initialType?: string }) {
+export default function QuoteForm({
+  initialType,
+  previewOnly = false,
+}: {
+  initialType?: string;
+  /** 정적 미리보기 — 화면만 보여주고 실제 접수는 하지 않는다. */
+  previewOnly?: boolean;
+}) {
   const [values, setValues] = useState<QuoteInput>(() => ({
     ...emptyQuoteInput,
     type: initialType && isInquiryType(initialType) ? initialType : '',
@@ -161,6 +168,13 @@ export default function QuoteForm({ initialType }: { initialType?: string }) {
     }
 
     setErrors({});
+    if (previewOnly) {
+      setState({
+        status: 'error',
+        message: '미리보기 사이트에서는 견적문의가 접수되지 않습니다. 운영 사이트에서 접수하거나 전화로 문의해 주세요.',
+      });
+      return;
+    }
     setState({ status: 'submitting' });
 
     const fd = new FormData();

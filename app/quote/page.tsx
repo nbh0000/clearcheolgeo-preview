@@ -22,7 +22,9 @@ export default async function QuotePage({
   searchParams: Promise<{ type?: string }>;
 }) {
   const params = await searchParams;
-  const formReady = siteConfig.quote.enabled && isDatabaseConfigured();
+  // 정적 미리보기(GitHub Pages)에서는 접수는 못 하지만 화면 확인을 위해 폼을 보여준다.
+  const previewOnly = process.env.NEXT_PUBLIC_STATIC_PREVIEW === '1';
+  const formReady = siteConfig.quote.enabled && (isDatabaseConfigured() || previewOnly);
 
   return (
     <>
@@ -54,7 +56,7 @@ export default async function QuotePage({
           </div>
 
           {formReady ? (
-            <QuoteForm initialType={params.type} />
+            <QuoteForm initialType={params.type} previewOnly={previewOnly} />
           ) : (
             <div className="qf-offline">
               <h2 className="title-lg">현재는 전화로 상담을 받고 있습니다.</h2>
