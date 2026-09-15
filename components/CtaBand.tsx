@@ -13,7 +13,7 @@ type Props = {
 
 /** 페이지 마지막 상담 유도 영역 (전화 / 견적문의). */
 export default function CtaBand({
-  title = ['현장 상황을 알려주세요.', '필요한 작업부터 함께 정리하겠습니다.'],
+  title = ['현장 상황을 알려주시면', '작업 범위와 견적을 안내합니다.'],
   body,
   quoteLabel = '견적문의',
   inquiryType,

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import Logo from '@/components/Logo';
 import { siteConfig } from '@/config/site';
-import { hasPublishedProjects } from '@/content/projects';
 
 /**
  * 푸터 — 사업자 정보는 config/site.ts 의 business 값이 채워졌을 때만 렌더링한다.
@@ -51,7 +50,7 @@ export default function Footer() {
             <h3>바로가기</h3>
             <ul>
               <li>
-                <Link href="/about">회사소개</Link>
+                <Link href="/#about">회사소개</Link>
               </li>
               <li>
                 <Link href="/services/demolition">철거</Link>
@@ -59,7 +58,7 @@ export default function Footer() {
               <li>
                 <Link href="/services/waste">폐기물처리</Link>
               </li>
-              {hasPublishedProjects() && (
+              {siteConfig.projects.enabled && (
                 <li>
                   <Link href="/projects">시공사례</Link>
                 </li>

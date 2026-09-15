@@ -22,54 +22,63 @@ export default async function QuotePage({
   searchParams: Promise<{ type?: string }>;
 }) {
   const params = await searchParams;
+  const formReady = siteConfig.quote.enabled && isDatabaseConfigured();
 
   return (
     <>
-      <section className="page-hero">
-        <div className="container">
-          <p className="eyebrow">견적문의</p>
-          <h1 className="display-lg mt-sm">
+      {/* 상단 띠 */}
+      <section className="qf-band" aria-labelledby="quote-title">
+        <div className="qf-band-bg" aria-hidden="true" />
+        <div className="qf-wrap">
+          <span className="sp-tag">견적문의</span>
+          <h1 className="qf-title" id="quote-title">
             현장 정보를 남겨주시면,
             <br />
             작업 범위와 견적을 상담해 드립니다.
           </h1>
-          <p className="lead mt-md measure">
-            정확한 견적은 작업 범위와 현장 조건을 확인한 후 안내합니다. 회원가입이나 로그인 없이
-            문의하실 수 있습니다.
-          </p>
         </div>
       </section>
 
-      <section className="section">
-        <div className="container">
-          <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', maxWidth: '760px' }}>
-            {siteConfig.quote.enabled && isDatabaseConfigured() ? (
-              <QuoteForm initialType={params.type} />
-            ) : (
-              <div className="card">
-                <h2 className="title-lg">현재는 전화로 상담을 받고 있습니다.</h2>
-                <p className="body-md mt-sm">
-                  온라인 견적문의 접수는 준비 중입니다. 아래 번호로 연락 주시면 현장 상황을 확인하고
-                  작업 범위와 견적을 안내해 드리겠습니다.
-                </p>
-                <div className="btn-row mt-lg">
-                  <a className="btn btn-primary btn-lg" href={siteConfig.phone.href}>
-                    전화상담 <span className="num">{siteConfig.phone.display}</span>
-                  </a>
-                </div>
-              </div>
-            )}
+      <section className="qf-section">
+        <div className="qf-wrap">
+          <div className="qf-intro">
+            <span className="qf-pill">회원가입 없이 접수</span>
+            <h2 className="qf-h2">
+              정확한 견적은 작업 범위와
+              <br />
+              현장 조건을 확인한 후 안내합니다.
+            </h2>
+            <p className="qf-lead">
+              알고 계신 내용만 적어 주셔도 됩니다. 접수 내용은 담당자만 확인하며 공개되지 않습니다.
+            </p>
           </div>
+
+          {formReady ? (
+            <QuoteForm initialType={params.type} />
+          ) : (
+            <div className="qf-offline">
+              <h2 className="title-lg">현재는 전화로 상담을 받고 있습니다.</h2>
+              <p className="body-md mt-sm">
+                온라인 견적문의 접수는 준비 중입니다. 아래 번호로 연락 주시면 현장 상황을 확인하고
+                작업 범위와 견적을 안내해 드리겠습니다.
+              </p>
+              <div className="btn-row mt-lg">
+                <a className="hm-btn hm-btn-dark" href={siteConfig.phone.href}>
+                  전화상담 <span className="num">{siteConfig.phone.display}</span>
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="section band-soft" aria-labelledby="quote-faq">
-        <div className="container">
-          <p className="eyebrow">자주 묻는 질문</p>
-          <h2 className="display-sm mt-sm" id="quote-faq">
+      <section className="qf-section qf-faq" aria-labelledby="quote-faq">
+        <div className="qf-wrap">
+          <span className="hm-label">자주 묻는 질문</span>
+          <h2 className="qf-h2 mt-sm" id="quote-faq">
             문의 전에 확인하면 좋은 내용
           </h2>
-          <div className="mt-xl">
+          <div className="hm-faq">
             <Faq items={faqs} />
           </div>
         </div>

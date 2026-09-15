@@ -55,7 +55,7 @@ export default function DemolitionPage() {
       </section>
 
       <CtaBand
-        title={['철거 범위부터', '함께 확인해 드리겠습니다.']}
+        title={['철거 범위 확인부터', '견적과 일정까지 안내합니다.']}
         quoteLabel="철거 견적문의"
         inquiryType="demolition"
       />

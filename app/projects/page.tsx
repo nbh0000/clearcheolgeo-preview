@@ -1,95 +1,124 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { PROJECT_CATEGORIES, getPublishedProjects } from '@/content/projects';
+import { siteConfig } from '@/config/site';
+import { isDatabaseConfigured } from '@/lib/db';
+import { listProjects, projectDisplayTitle, type ProjectRecord } from '@/lib/projects';
 import { pageMetadata } from '@/lib/seo';
-import CtaBand from '@/components/CtaBand';
+import ProjectGallery from '@/components/ProjectGallery';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = pageMetadata({
   title: '시공사례',
-  description: '클리어철거가 실제로 진행한 철거·폐기물처리 현장 사례입니다.',
+  description: '클리어철거가 실제로 진행한 철거·폐기물처리·원상복구 현장 사례입니다.',
   path: '/projects',
 });
 
 /**
- * 시공사례 목록.
- * 공개 가능한 실제 사례가 없으면 페이지 자체를 노출하지 않는다(404).
- * 분류 필터는 쿼리스트링으로 동작하므로 JS 없이도 사용할 수 있다.
+ * 시공사례 목록 — 관리자 페이지에서 등록한 사례를 최신순으로 보여준다.
+ * 사례마다 사진 여러 장, 태그(업종·지역·작업 내용·면적), 총 견적, 설명이 세로로 쌓인다.
+ * "더보기"는 쿼리스트링(page)으로 동작하므로 JS 없이도 사용할 수 있다.
  */
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
-  const all = getPublishedProjects();
-  if (all.length === 0) notFound();
+  const { page } = await searchParams;
+  const pageNum = Math.max(1, Number.parseInt(page ?? '1', 10) || 1);
+  const pageSize = siteConfig.projects.pageSize;
 
-  const { category } = await searchParams;
-  const active = PROJECT_CATEGORIES.some((c) => c.value === category) ? category : 'all';
-  const list = active === 'all' ? all : all.filter((p) => p.category === active);
+  let items: ProjectRecord[] = [];
+  let total = 0;
+  let loadError: string | null = null;
+  if (isDatabaseConfigured()) {
+    try {
+      // 1페이지부터 현재 페이지까지 한 번에 보여준다 ("더보기" 누적 방식)
+      const res = await listProjects({ publishedOnly: true, limit: pageSize * pageNum, offset: 0 });
+      items = res.items;
+      total = res.total;
+    } catch (err) {
+      loadError = err instanceof Error ? err.message : '사례를 불러오지 못했습니다.';
+    }
+  }
+  const hasMore = items.length < total;
 
   return (
-    <>
-      <section className="page-hero">
-        <div className="container">
-          <p className="eyebrow">시공사례</p>
-          <h1 className="display-lg mt-sm">실제 진행한 현장</h1>
-          <p className="lead mt-md measure">
-            공개 동의를 받은 현장만 게시합니다. 현장 조건에 따라 작업 범위와 기간은 달라질 수
-            있습니다.
+    <section className="pj-section" aria-labelledby="projects-title">
+      <div className="pj-wrap">
+        <header className="pj-head">
+          <h1 className="hm-label" id="projects-title">
+            시공사례
+          </h1>
+        </header>
+
+        {loadError && <div className="notice pj-notice">사례를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</div>}
+
+        {!loadError && items.length === 0 && (
+          <div className="notice pj-notice">아직 등록된 시공사례가 없습니다.</div>
+        )}
+
+        {items.length > 0 && (
+          <ol className="pj-list">
+            {items.map((p) => {
+              const tags = [p.usage, p.region, p.scope, p.areaText].filter(Boolean);
+              return (
+                <li className="pj-item" key={p.id} id={p.id}>
+                  <ProjectGallery
+                    photos={p.photos.map((ph, i) => ({
+                      url: ph.url,
+                      alt: `${projectDisplayTitle(p)} 현장 사진 ${i + 1}`,
+                      width: ph.width,
+                      height: ph.height,
+                    }))}
+                  />
+                  <ul className="pj-tags" aria-label="현장 정보">
+                    {tags.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                  <dl className="pj-facts">
+                    {p.amountText && (
+                      <div>
+                        <dt>총 견적</dt>
+                        <dd>{p.amountText}</dd>
+                      </div>
+                    )}
+                    {p.durationText && (
+                      <div>
+                        <dt>작업 기간</dt>
+                        <dd>{p.durationText}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  {p.description && <p className="pj-desc">{p.description}</p>}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+
+        {hasMore && (
+          <p className="pj-more">
+            <Link className="hm-btn hm-btn-line" href={`/projects?page=${pageNum + 1}`} scroll={false}>
+              더보기
+            </Link>
           </p>
+        )}
+
+        <div className="pj-cta">
+          <p>비슷한 현장의 철거·폐기물처리 견적이 필요하다면</p>
+          <div className="btn-row">
+            <Link className="hm-btn hm-btn-dark" href="/quote">
+              견적문의
+            </Link>
+            <a className="hm-btn hm-btn-line" href={siteConfig.phone.href}>
+              전화상담 <span className="num">{siteConfig.phone.display}</span>
+            </a>
+          </div>
         </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <nav className="filter-row" aria-label="시공사례 분류">
-            {PROJECT_CATEGORIES.map((c) => (
-              <Link
-                key={c.value}
-                href={c.value === 'all' ? '/projects' : `/projects?category=${c.value}`}
-                className={`btn ${active === c.value ? 'btn-primary' : 'btn-secondary'}`}
-                aria-current={active === c.value ? 'page' : undefined}
-              >
-                {c.label}
-              </Link>
-            ))}
-          </nav>
-
-          {list.length === 0 ? (
-            <div className="notice mt-lg">해당 분류의 사례가 아직 없습니다.</div>
-          ) : (
-            <div className="grid grid-3 mt-xl">
-              {list.map((project) => (
-                <article className="card card-hover" key={project.slug}>
-                  {project.isSample && <span className="badge-pill">테스트 데이터</span>}
-                  {project.afterPhotos[0] && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={project.afterPhotos[0].src}
-                      alt={project.afterPhotos[0].alt}
-                      loading="lazy"
-                      style={{ borderRadius: 'var(--r-lg)', marginBottom: 'var(--s-base)' }}
-                    />
-                  )}
-                  <span className="badge-pill">{project.usage}</span>
-                  <h2 className="title-md mt-sm">{project.title}</h2>
-                  <p className="body-sm mt-xs">
-                    {project.region} · {project.scope.join(', ')}
-                  </p>
-                  <p className="mt-base">
-                    <Link className="btn-tertiary" href={`/projects/${project.slug}`}>
-                      사례 자세히 보기 →
-                    </Link>
-                  </p>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <CtaBand />
-    </>
+      </div>
+    </section>
   );
 }

@@ -10,30 +10,32 @@ export default function SupportBanner() {
   if (!cfg.enabled) return null;
 
   return (
-    <section className="section band-dark" aria-labelledby="support-banner-title">
+    <section className="hm-section hm-dark hm-support" aria-labelledby="support-banner-title">
       <div className="container">
-        <div className="support-banner">
+        <div className="hm-support-grid">
           <div>
-            <p className="eyebrow" style={{ color: 'var(--on-dark-soft)' }}>
-              {cfg.programName}
-            </p>
-            <h2 className="display-md mt-sm" id="support-banner-title">
-              폐업을 준비 중이신가요?
+            <span className="hm-label">{cfg.programName}</span>
+            <h2 className="hm-support-title mt-md" id="support-banner-title">
+              폐업 예정 점포의 철거비 지원
             </h2>
-            <p className="amount-line mt-base">
-              점포철거비 <span className="amount num">최대 600만원</span> 지원 대상인지 확인하세요.
+            <p className="hm-display hm-display-lg hm-support-amount">
+              점포철거비
+              <br />
+              <span className="amt">
+                최대 <span className="num">600</span>만원
+              </span>
             </p>
-            <p className="body-md mt-sm measure">
-              철거 견적과 함께 지원 대상 확인 방법, 신청 절차와 준비서류를 안내합니다.
+            <p className="hm-support-lead mt-lg">
+              지원요건에 해당하는지 상담 후 신청 절차와 준비서류를 안내드립니다.
             </p>
-            <div className="notice notice-dark mt-lg">
+            <div className="hm-fine">
               {cfg.disclaimer.map((line) => (
                 <p key={line}>{line}</p>
               ))}
             </div>
           </div>
 
-          <div className="btn-row" style={{ flexDirection: 'column', minWidth: '240px' }}>
+          <div className="hm-support-actions">
             <Link className="btn btn-primary btn-lg btn-block" href="/quote?type=support">
               철거지원금 상담하기
             </Link>

@@ -35,6 +35,13 @@
   --semantic-down: #cf202f;
   /* 일러스트 전용 서브 악센트 — 액션 색으로 사용하지 않는다. */
   --accent-yellow: #f4b000;
+  /* 어두운 배경 위 강조용 따뜻한 밝은 색 (메인 히어로 금액·버튼) */
+  --accent-warm: #e9e3d9;
+  --accent-warm-active: #d9d2c6;
+  /* 어두운 배경 위 핵심 숫자 강조색 (앰버) */
+  --accent-amber: #f2b544;
+  /* 밝은 배경 위 숫자 강조색 (앰버를 진하게) */
+  --accent-amber-deep: #d9930f;
 
   /* ---------- Radius ---------- */
   --r-none: 0px;

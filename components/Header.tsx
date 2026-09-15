@@ -50,11 +50,13 @@ export default function Header() {
 
   const isCurrent = (href: string) =>
     pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
+  // 메인은 어두운 첫 화면에서 시작하므로 헤더도 같은 톤으로 맞춘다.
+  const onHome = pathname === '/';
 
   return (
-    <header className="site-header">
+    <header className={`site-header${onHome ? ' site-header-dark' : ''}`}>
       <div className="container header-inner">
-        <Logo variant="horizontal" className="header-logo" />
+        <Logo variant="horizontal" className="header-logo" onDark={onHome} />
 
         <nav className="nav-desktop" aria-label="주요 메뉴" ref={navRef}>
           {navItems.map((item) =>
@@ -72,7 +74,7 @@ export default function Header() {
                 {openMenu === item.href && (
                   <div className="nav-panel" id={`${panelId}-${item.label}`}>
                     <Link href={item.href}>
-                      <span className="np-title">사업분야 전체 보기</span>
+                      <span className="np-title">사업분야 보기</span>
                       <span className="np-sum">철거·폐기물처리 안내를 한 화면에서 확인</span>
                     </Link>
                     {item.children.map((child) => (
@@ -97,13 +99,11 @@ export default function Header() {
         </nav>
 
         <div className="header-actions">
-          <a className="header-phone" href={siteConfig.phone.href}>
+          <a className="header-cta" href={siteConfig.phone.href}>
+            <span className="dot" aria-hidden="true" />
             <span className="hp-label">전화상담</span>
             <span className="hp-num num">{siteConfig.phone.display}</span>
           </a>
-          <Link className="btn btn-primary" href="/quote">
-            견적문의
-          </Link>
         </div>
 
         <button

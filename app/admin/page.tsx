@@ -56,6 +56,10 @@ export default async function AdminPage() {
   return (
     <section className="section">
       <div className="container">
+        <nav className="admin-nav" aria-label="관리자 메뉴">
+          <a aria-current="page" href="/admin">견적문의 접수</a>
+          <a href="/admin/projects">시공사례 관리</a>
+        </nav>
         <h1 className="display-sm">견적문의 접수 목록</h1>
         <p className="body-sm mt-sm">
           저장소: PostgreSQL · 연결 {dbStatus.ok ? '정상' : '오류'} · 알림 연결{' '}

@@ -213,9 +213,9 @@ export default function QuoteForm({ initialType }: { initialType?: string }) {
 
   if (state.status === 'success') {
     return (
-      <div className="card" role="status" tabIndex={-1} ref={statusRef}>
-        <p className="eyebrow success-text">접수 완료</p>
-        <h2 className="title-lg mt-sm">견적문의가 접수되었습니다.</h2>
+      <div className="qf-success" role="status" tabIndex={-1} ref={statusRef}>
+        <span className="qf-pill qf-pill-ok">접수 완료</span>
+        <h2 className="qf-h2 mt-sm">견적문의가 접수되었습니다.</h2>
         <p className="body-md mt-sm">
           남겨주신 연락처로 상담을 안내해 드리겠습니다.
           <br />
@@ -231,10 +231,10 @@ export default function QuoteForm({ initialType }: { initialType?: string }) {
           </p>
         )}
         <div className="btn-row mt-lg">
-          <Link className="btn btn-secondary" href="/">
+          <Link className="hm-btn hm-btn-line" href="/">
             메인으로
           </Link>
-          <a className="btn btn-primary" href={siteConfig.phone.href}>
+          <a className="hm-btn hm-btn-dark" href={siteConfig.phone.href}>
             전화상담 <span className="num">{siteConfig.phone.display}</span>
           </a>
         </div>
@@ -244,16 +244,39 @@ export default function QuoteForm({ initialType }: { initialType?: string }) {
 
   const submitting = state.status === 'submitting';
 
+  /** 필수 표시 배지 */
+  const Req = () => <span className="qf-req">필수</span>;
+
+  /** 선택형 항목 — 버튼(칩)으로 고른다. 같은 칩을 다시 누르면 해제된다. */
+  const chips = (
+    name: 'type' | 'elevator' | 'vehicleAccess',
+    options: readonly { value: string; label: string }[],
+    allowEmpty: boolean,
+  ) => (
+    <div className="qf-chips" role="group" aria-labelledby={`${name}-label`}>
+      {options.map((o) => {
+        const selected = values[name] === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            className="qf-chip"
+            aria-pressed={selected}
+            onClick={() => set(name, selected && allowEmpty ? '' : o.value)}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+      {/* 서버 검증·포커스 이동용 숨김 값 */}
+      <input type="hidden" name={name} value={values[name]} />
+    </div>
+  );
+
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate>
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="qf-form">
       {state.status === 'error' && (
-        <div
-          className="notice mt-base"
-          role="alert"
-          tabIndex={-1}
-          ref={statusRef}
-          style={{ borderColor: 'var(--semantic-down)' }}
-        >
+        <div className="notice qf-error" role="alert" tabIndex={-1} ref={statusRef}>
           <p className="title-sm" style={{ color: 'var(--semantic-down)' }}>
             접수하지 못했습니다
           </p>
@@ -267,30 +290,15 @@ export default function QuoteForm({ initialType }: { initialType?: string }) {
         <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" ref={honeypotRef} />
       </div>
 
-      <fieldset>
-        <legend className="title-md">기본 정보</legend>
+      {/* 1. 기본 정보 */}
+      <fieldset className="qf-group">
+        <legend className="qf-legend">기본 정보</legend>
 
-        <div className="field mt-base">
-          <label className="label" htmlFor="type">
-            문의 유형<span className="req">*</span>
-          </label>
-          <select
-            id="type"
-            name="type"
-            className="select"
-            value={values.type}
-            onChange={(e) => set('type', e.target.value)}
-            aria-invalid={errors.type ? 'true' : undefined}
-            aria-describedby={errors.type ? 'type-error' : undefined}
-            required
-          >
-            <option value="">선택해 주세요</option>
-            {INQUIRY_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
+        <div className="qf-field qf-span">
+          <span className="qf-label" id="type-label">
+            문의 유형 <Req />
+          </span>
+          {chips('type', INQUIRY_TYPES, false)}
           {errors.type && (
             <span className="error-text" id="type-error">
               {errors.type}
@@ -298,16 +306,17 @@ export default function QuoteForm({ initialType }: { initialType?: string }) {
           )}
         </div>
 
-        <div className="field">
-          <label className="label" htmlFor="name">
-            이름 / 담당자명<span className="req">*</span>
+        <div className="qf-field">
+          <label className="qf-label" htmlFor="name">
+            이름 / 담당자명 <Req />
           </label>
           <input
             id="name"
             name="name"
-            className="input"
+            className="qf-input"
             type="text"
             autoComplete="name"
+            placeholder="이름"
             value={values.name}
             onChange={(e) => set('name', e.target.value)}
             aria-invalid={errors.name ? 'true' : undefined}
@@ -321,38 +330,18 @@ export default function QuoteForm({ initialType }: { initialType?: string }) {
           )}
         </div>
 
-        <div className="field">
-          <label className="label" htmlFor="company">
-            상호명
-          </label>
-          <input
-            id="company"
-            name="company"
-            className="input"
-            type="text"
-            autoComplete="organization"
-            value={values.company}
-            onChange={(e) => set('company', e.target.value)}
-            aria-describedby="company-help"
-          />
-          <span className="help" id="company-help">
-            개인 고객은 입력하지 않으셔도 됩니다.
-          </span>
-          {errors.company && <span className="error-text">{errors.company}</span>}
-        </div>
-
-        <div className="field">
-          <label className="label" htmlFor="phone">
-            연락처<span className="req">*</span>
+        <div className="qf-field">
+          <label className="qf-label" htmlFor="phone">
+            연락처 <Req />
           </label>
           <input
             id="phone"
             name="phone"
-            className="input"
+            className="qf-input"
             type="tel"
             inputMode="tel"
             autoComplete="tel"
-            placeholder="010-1234-5678 또는 02-123-4567"
+            placeholder="010-1234-5678"
             value={values.phone}
             onChange={(e) => set('phone', e.target.value)}
             aria-invalid={errors.phone ? 'true' : undefined}
@@ -370,28 +359,60 @@ export default function QuoteForm({ initialType }: { initialType?: string }) {
           )}
         </div>
 
-        <div className="field">
-          <label className="label" htmlFor="address">
-            현장 주소<span className="req">*</span>
+        <div className="qf-field qf-span">
+          <label className="qf-label" htmlFor="company">
+            상호명
           </label>
-          <div style={{ display: 'flex', gap: 'var(--s-xs)', flexWrap: 'wrap' }}>
+          <input
+            id="company"
+            name="company"
+            className="qf-input"
+            type="text"
+            autoComplete="organization"
+            placeholder="개인 고객은 입력하지 않으셔도 됩니다"
+            value={values.company}
+            onChange={(e) => set('company', e.target.value)}
+          />
+          {errors.company && <span className="error-text">{errors.company}</span>}
+        </div>
+      </fieldset>
+
+      {/* 2. 현장 정보 */}
+      <fieldset className="qf-group">
+        <legend className="qf-legend">현장 정보</legend>
+
+        <div className="qf-field qf-span">
+          <label className="qf-label" htmlFor="address">
+            현장 주소 <Req />
+          </label>
+          <div className="qf-address">
             <input
               id="address"
               name="address"
-              className="input"
+              className="qf-input"
               type="text"
               autoComplete="street-address"
-              style={{ flex: '1 1 240px' }}
+              placeholder="주소"
               value={values.address}
               onChange={(e) => set('address', e.target.value)}
               aria-invalid={errors.address ? 'true' : undefined}
               aria-describedby={errors.address ? 'address-error' : 'address-help'}
               required
             />
-            <button type="button" className="btn btn-secondary" onClick={openAddressSearch}>
+            <button type="button" className="hm-btn hm-btn-line" onClick={openAddressSearch}>
               주소 검색
             </button>
           </div>
+          <input
+            id="addressDetail"
+            name="addressDetail"
+            className="qf-input mt-xs"
+            type="text"
+            placeholder="상세 주소 · 층수 · 호실"
+            aria-label="상세 주소 · 층수 · 호실"
+            value={values.addressDetail}
+            onChange={(e) => set('addressDetail', e.target.value)}
+          />
           {errors.address ? (
             <span className="error-text" id="address-error">
               {errors.address}
@@ -401,228 +422,191 @@ export default function QuoteForm({ initialType }: { initialType?: string }) {
               철거 또는 폐기물처리가 필요한 현장의 주소를 입력해 주세요. 직접 입력도 가능합니다.
             </span>
           )}
+          {errors.addressDetail && <span className="error-text">{errors.addressDetail}</span>}
           {addressSearchNote && <span className="error-text">{addressSearchNote}</span>}
         </div>
 
-        <div className="field">
-          <label className="label" htmlFor="addressDetail">
-            상세 주소 · 층수 · 호실
-          </label>
-          <input
-            id="addressDetail"
-            name="addressDetail"
-            className="input"
-            type="text"
-            value={values.addressDetail}
-            onChange={(e) => set('addressDetail', e.target.value)}
-          />
-          {errors.addressDetail && <span className="error-text">{errors.addressDetail}</span>}
-        </div>
-
-        <div className="field">
-          <label className="label" htmlFor="message">
-            문의사항<span className="req">*</span>
+        <div className="qf-field qf-span">
+          <label className="qf-label" htmlFor="message">
+            문의사항 <Req />
           </label>
           <textarea
             id="message"
             name="message"
-            className="textarea"
+            className="qf-input qf-textarea"
+            placeholder={'철거할 공간, 처리할 폐기물의 종류와 대략적인 양, 희망 일정 등\n알고 계신 내용을 적어 주세요.'}
             value={values.message}
             onChange={(e) => set('message', e.target.value)}
             aria-invalid={errors.message ? 'true' : undefined}
-            aria-describedby={errors.message ? 'message-error' : 'message-help'}
+            aria-describedby={errors.message ? 'message-error' : undefined}
             required
           />
-          {errors.message ? (
+          {errors.message && (
             <span className="error-text" id="message-error">
               {errors.message}
-            </span>
-          ) : (
-            <span className="help" id="message-help">
-              철거할 공간, 처리할 폐기물의 종류와 대략적인 양, 희망 일정 등 알고 계신 내용을 적어
-              주세요.
             </span>
           )}
         </div>
       </fieldset>
 
-      {/* 추가 정보 (선택) */}
-      <details className="disclosure mt-lg">
-        <summary>추가 정보 입력 (선택)</summary>
-        <div className="disclosure-body">
-          <p className="caption">
-            아래 항목은 선택 사항입니다. 알고 계신 내용만 적어 주셔도 상담에 도움이 됩니다.
-          </p>
+      {/* 3. 추가 정보 (선택) */}
+      <fieldset className="qf-group">
+        <legend className="qf-legend">
+          추가 정보 <span className="qf-opt">선택</span>
+        </legend>
+        <p className="caption qf-span">알고 계신 내용만 적어 주셔도 상담에 도움이 됩니다.</p>
 
-          <div className="field mt-base">
-            <label className="label" htmlFor="usage">
-              현장 업종 또는 용도
-            </label>
+        <div className="qf-field">
+          <label className="qf-label" htmlFor="usage">
+            현장 업종 또는 용도
+          </label>
+          <input
+            id="usage"
+            name="usage"
+            className="qf-input"
+            type="text"
+            placeholder="예: 카페, 사무실, 창고"
+            value={values.usage}
+            onChange={(e) => set('usage', e.target.value)}
+          />
+          {errors.usage && <span className="error-text">{errors.usage}</span>}
+        </div>
+
+        <div className="qf-field">
+          <label className="qf-label" htmlFor="area">
+            대략적인 면적
+          </label>
+          <div className="qf-area">
             <input
-              id="usage"
-              name="usage"
-              className="input"
+              id="area"
+              name="area"
+              className="qf-input"
               type="text"
-              placeholder="예: 카페, 사무실, 창고"
-              value={values.usage}
-              onChange={(e) => set('usage', e.target.value)}
+              inputMode="decimal"
+              placeholder="예: 30"
+              value={values.area}
+              onChange={(e) => set('area', e.target.value)}
             />
-            {errors.usage && <span className="error-text">{errors.usage}</span>}
-          </div>
-
-          <div className="field">
-            <label className="label" htmlFor="area">
-              대략적인 면적
-            </label>
-            <div style={{ display: 'flex', gap: 'var(--s-xs)' }}>
-              <input
-                id="area"
-                name="area"
-                className="input"
-                type="text"
-                inputMode="decimal"
-                placeholder="예: 30"
-                style={{ flex: '1 1 auto' }}
-                value={values.area}
-                onChange={(e) => set('area', e.target.value)}
-              />
-              <select
-                className="select"
-                name="areaUnit"
-                aria-label="면적 단위"
-                style={{ width: '110px', flex: 'none' }}
-                value={values.areaUnit}
-                onChange={(e) => set('areaUnit', e.target.value)}
-              >
-                {AREA_UNITS.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {errors.area && <span className="error-text">{errors.area}</span>}
-          </div>
-
-          <div className="field">
-            <label className="label" htmlFor="preferredDate">
-              희망 작업일
-            </label>
-            <input
-              id="preferredDate"
-              name="preferredDate"
-              className="input"
-              type="date"
-              value={values.preferredDate}
-              onChange={(e) => set('preferredDate', e.target.value)}
-            />
-            {errors.preferredDate && <span className="error-text">{errors.preferredDate}</span>}
-          </div>
-
-          <div className="field">
-            <label className="label" htmlFor="floor">
-              층수
-            </label>
-            <input
-              id="floor"
-              name="floor"
-              className="input"
-              type="text"
-              placeholder="예: 지상 2층"
-              value={values.floor}
-              onChange={(e) => set('floor', e.target.value)}
-            />
-            {errors.floor && <span className="error-text">{errors.floor}</span>}
-          </div>
-
-          <div className="field">
-            <label className="label" htmlFor="elevator">
-              엘리베이터 여부
-            </label>
             <select
-              id="elevator"
-              name="elevator"
-              className="select"
-              value={values.elevator}
-              onChange={(e) => set('elevator', e.target.value)}
+              className="qf-input qf-select"
+              name="areaUnit"
+              aria-label="면적 단위"
+              value={values.areaUnit}
+              onChange={(e) => set('areaUnit', e.target.value)}
             >
-              {ELEVATOR_OPTIONS.map((o) => (
-                <option key={o || 'none'} value={o}>
-                  {o || '선택 안 함'}
+              {AREA_UNITS.map((u) => (
+                <option key={u} value={u}>
+                  {u}
                 </option>
               ))}
             </select>
           </div>
+          {errors.area && <span className="error-text">{errors.area}</span>}
+        </div>
 
-          <div className="field">
-            <label className="label" htmlFor="vehicleAccess">
-              차량 접근 가능 여부
-            </label>
-            <select
-              id="vehicleAccess"
-              name="vehicleAccess"
-              className="select"
-              value={values.vehicleAccess}
-              onChange={(e) => set('vehicleAccess', e.target.value)}
-            >
-              {VEHICLE_OPTIONS.map((o) => (
-                <option key={o || 'none'} value={o}>
-                  {o || '선택 안 함'}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="qf-field">
+          <label className="qf-label" htmlFor="preferredDate">
+            희망 작업일
+          </label>
+          <input
+            id="preferredDate"
+            name="preferredDate"
+            className="qf-input"
+            type="date"
+            value={values.preferredDate}
+            onChange={(e) => set('preferredDate', e.target.value)}
+          />
+          {errors.preferredDate && <span className="error-text">{errors.preferredDate}</span>}
+        </div>
 
-          <div className="field">
-            <label className="label" htmlFor="attachments">
-              현장 사진
-            </label>
+        <div className="qf-field">
+          <label className="qf-label" htmlFor="floor">
+            층수
+          </label>
+          <input
+            id="floor"
+            name="floor"
+            className="qf-input"
+            type="text"
+            placeholder="예: 지상 2층"
+            value={values.floor}
+            onChange={(e) => set('floor', e.target.value)}
+          />
+          {errors.floor && <span className="error-text">{errors.floor}</span>}
+        </div>
+
+        <div className="qf-field">
+          <span className="qf-label" id="elevator-label">
+            엘리베이터 여부
+          </span>
+          {chips(
+            'elevator',
+            ELEVATOR_OPTIONS.filter(Boolean).map((o) => ({ value: o, label: o })),
+            true,
+          )}
+        </div>
+
+        <div className="qf-field">
+          <span className="qf-label" id="vehicleAccess-label">
+            차량 접근 가능 여부
+          </span>
+          {chips(
+            'vehicleAccess',
+            VEHICLE_OPTIONS.filter(Boolean).map((o) => ({ value: o, label: o })),
+            true,
+          )}
+        </div>
+
+        <div className="qf-field qf-span">
+          <label className="qf-label" htmlFor="attachments">
+            현장 사진
+          </label>
+          <label className="qf-dropzone">
             <input
               id="attachments"
-              className="input"
               type="file"
               accept={acceptedImageTypes.join(',')}
               multiple
-              style={{ paddingTop: '10px' }}
               onChange={(e) => {
                 addFiles(e.target.files);
                 e.target.value = '';
               }}
               aria-describedby="attachments-help"
             />
+            <strong>사진을 선택하거나 끌어다 놓기</strong>
             <span className="help" id="attachments-help">
               {acceptedImageLabel} 형식 · 최대 {maxFiles}장 · 파일당 최대 {maxFileSizeMb}MB. 첨부한
               사진은 상담 목적으로만 사용하며 공개되지 않습니다.
             </span>
-            {fileError && <span className="error-text">{fileError}</span>}
+          </label>
+          {fileError && <span className="error-text">{fileError}</span>}
 
-            {files.length > 0 && (
-              <ul className="file-list">
-                {files.map((f) => (
-                  <li className="file-item" key={f.key}>
-                    {/* 사용자가 방금 선택한 로컬 이미지 미리보기 */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={f.previewUrl} alt={`첨부 이미지 미리보기: ${f.file.name}`} />
-                    <button
-                      type="button"
-                      className="fi-remove"
-                      onClick={() => removeFile(f.key)}
-                      aria-label={`${f.file.name} 첨부 삭제`}
-                    >
-                      ✕
-                    </button>
-                    <span className="fi-name">{f.file.name}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {files.length > 0 && (
+            <ul className="file-list">
+              {files.map((f) => (
+                <li className="file-item" key={f.key}>
+                  {/* 사용자가 방금 선택한 로컬 이미지 미리보기 */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.previewUrl} alt={`첨부 이미지 미리보기: ${f.file.name}`} />
+                  <button
+                    type="button"
+                    className="fi-remove"
+                    onClick={() => removeFile(f.key)}
+                    aria-label={`${f.file.name} 첨부 삭제`}
+                  >
+                    ✕
+                  </button>
+                  <span className="fi-name">{f.file.name}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      </details>
+      </fieldset>
 
-      {/* 개인정보 수집·이용 동의 */}
-      <div className="card card-soft mt-lg">
-        <h3 className="title-md">개인정보 수집·이용 동의 (필수)</h3>
+      {/* 4. 개인정보 수집·이용 동의 */}
+      <div className="qf-consent">
+        <h3 className="qf-legend">개인정보 수집·이용 동의 <Req /></h3>
         <div className="body-sm mt-sm stack">
           <p>
             <strong>수집·이용 목적</strong> · 철거/폐기물처리 견적 상담, 문의 답변 및 상담 이력 관리
@@ -672,14 +656,22 @@ export default function QuoteForm({ initialType }: { initialType?: string }) {
         )}
       </div>
 
-      <div className="mt-lg">
-        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={submitting}>
+      <div className="qf-submit">
+        <button type="submit" className="qf-submit-btn" disabled={submitting}>
           {submitting ? '접수 중입니다…' : '견적문의 접수하기'}
         </button>
         <p className="caption mt-sm text-center" aria-live="polite">
           {submitting
             ? '전송 중입니다. 창을 닫지 말고 잠시만 기다려 주세요.'
             : '접수 내용은 담당자만 확인하며, 공개 게시판에 노출되지 않습니다.'}
+        </p>
+      </div>
+
+      <div className="qf-after">
+        <p>
+          <strong>접수 후 진행</strong> · 남겨주신 연락처로 현장 상황을 확인한 뒤 작업 범위와 견적을
+          안내합니다. 급한 문의는 전화 <span className="num">{siteConfig.phone.display}</span> 로 바로
+          연락해 주세요.
         </p>
       </div>
     </form>

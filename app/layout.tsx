@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import './components.css';
+import './home.css';
+import './projects.css';
+import './pages.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MobileCallBar from '@/components/MobileCallBar';
