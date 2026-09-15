@@ -57,6 +57,8 @@ export type ProjectRecord = {
   amountText: string;
   description: string;
   photos: ProjectPhoto[];
+  /** 화면 확인용 예시 데이터 여부 (content/sampleProjects.ts) */
+  isSample?: boolean;
 };
 
 export type ProjectInput = Pick<

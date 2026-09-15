@@ -127,6 +127,10 @@
   font-weight: 500;
   color: var(--ink);
 }
+.pj-tags .pj-tag-sample {
+  background: var(--ink);
+  color: var(--on-dark);
+}
 .pj-facts {
   display: flex;
   flex-wrap: wrap;

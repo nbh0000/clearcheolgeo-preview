@@ -25,6 +25,7 @@ jobs:
     env:
       STATIC_PREVIEW: '1'
       NEXT_PUBLIC_STATIC_PREVIEW: '1'
+      NEXT_PUBLIC_SHOW_SAMPLE_PROJECTS: '1'
       PREVIEW_BASE_PATH: /${{ github.event.repository.name }}
     steps:
       - uses: actions/checkout@v4

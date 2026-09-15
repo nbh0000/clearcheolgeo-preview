@@ -5,6 +5,7 @@ import { isDatabaseConfigured } from '@/lib/db';
 import { listProjects, projectDisplayTitle, type ProjectRecord } from '@/lib/projects';
 import { pageMetadata } from '@/lib/seo';
 import ProjectGallery from '@/components/ProjectGallery';
+import { sampleProjects } from '@/content/sampleProjects';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,11 @@ export default async function ProjectsPage({
       loadError = err instanceof Error ? err.message : '사례를 불러오지 못했습니다.';
     }
   }
+  // 등록된 사례가 없고 예시 표시가 켜져 있으면(미리보기·개발용) 예시를 보여준다.
+  if (items.length === 0 && !loadError && process.env.NEXT_PUBLIC_SHOW_SAMPLE_PROJECTS === '1') {
+    items = sampleProjects;
+    total = sampleProjects.length;
+  }
   const hasMore = items.length < total;
 
   return (
@@ -74,6 +80,7 @@ export default async function ProjectsPage({
                     }))}
                   />
                   <ul className="pj-tags" aria-label="현장 정보">
+                    {p.isSample && <li className="pj-tag-sample">예시</li>}
                     {tags.map((t) => (
                       <li key={t}>{t}</li>
                     ))}
